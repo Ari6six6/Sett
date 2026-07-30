@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+# gate-test — can the local model write a GATE?
+#
+# This is the Herald-seat discriminator, reduced to one measurable skill.
+#
+# Under probe, dispatch and adjudication are bash. The only cognitive work left
+# in "the seat" is authoring a check: computing ground truth by a path
+# INDEPENDENT of the artifact being graded. That is harder than doing the task,
+# because it requires modelling how you would be wrong.
+#
+# So: give the model a task description and an out path whose artifact already
+# exists and is known-correct (the flash-100 gold). Ask only for the check.
+# Then grade its check against two gates:
+#
+#   Gate A (real):     fails when the artifact is absent  -> not a fake gate
+#   Gate B (correct):  passes against the known-good gold -> encodes true truth
+#   Gate C (discerning): FAILS against a wrong-but-present artifact
+#
+# All three must hold. A and B alone are not enough: `test -s "$OUT/x.txt"`
+# passes both while verifying nothing — it only proves a file exists, which is
+# exactly the flash-100 weakness this tool exists to catch. Gate C is what
+# separates a real check from an existence test.
+#
+# Score = points where BOTH hold, out of N. That number is the answer to
+# "can a 27B hold the seat" — no transcript, no vibe.
+set -euo pipefail
+
+SETT="/home/michael/SETT-repo"
+GOLD="/home/michael/karte/parkour/out/flash100"
+WORK="$SETT/runs/gate-test"
+MODEL="${1:-}"
+[ -n "$MODEL" ] || { echo "usage: gate-test.sh <model>  (e.g. km-box/glm-4.7-flash)" >&2; exit 2; }
+
+mkdir -p "$WORK"
+EMPTY="$(mktemp -d)"
+WRONG="$(mktemp -d)"
+trap 'rm -rf "$EMPTY" "$WRONG"' EXIT
+# Wrong-but-present artifacts: non-empty, plausible shape, incorrect value.
+# A check that passes these is an existence test, not a verification.
+for f in 11 13 16 18 19 20 22 25 89 90; do printf 'WRONG_VALUE_00000\n' > "$WRONG/$f.txt"; done
+
+# id | out file | task text handed to the model
+POINTS=$(cat <<'EOF'
+11|11.txt|The file contains the byte size (digits only) of /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json
+13|13.txt|The file contains the number of entries in the "objects" array of the STIX bundle at /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json
+16|16.txt|The file contains the catalogVersion field of /home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json
+18|18.txt|The file contains the cveID of the first entry in the vulnerabilities array of /home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json
+19|19.txt|The file contains the count of KEV entries whose knownRansomwareCampaignUse field equals the string Known, in /home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json
+20|20.txt|The file contains the single most common vendorProject value in /home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json
+22|22.txt|The file contains the number of STIX objects of type malware in /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json
+25|25.txt|The file contains the sha256sum output for /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json
+89|89.txt|The file contains the numbers 1 through 5, one per line
+90|90.txt|The file contains the basename of /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json
+EOF
+)
+
+# Two briefs. STRICT is the original. GUIDED adds only what the first run's
+# failures showed was missing: no jq, mind the JSON shape, valid bash.
+# Same model, same tasks, same gates. The ONLY variable is the instruction.
+GUIDED_EXTRA='
+Environment facts you must respect:
+- jq is NOT installed. Use python3 or coreutils only.
+- Read the JSON structure before assuming it. A top-level object is not a list;
+  KEV entries live under the "vulnerabilities" key.
+- Your output must be valid bash. Do not emit prose. Do not emit fences.
+- Prefer: test "$(...)" = "$(...)" with python3 computing the expected value.'
+
+BRIEF='You are writing a verification check for an automated grading harness.
+
+A worker was told to produce a file. You must write bash (one line, or several)  that
+decides whether the file is CORRECT. Rules:
+
+- Output ONLY the bash. No explanation, no commentary.
+- The environment variable OUT holds the directory containing the file.
+  Refer to the file as "$OUT/<filename>". Never hardcode a directory.
+- Exit 0 if and only if the file content is correct.
+- You must compute the expected value INDEPENDENTLY, from the original source,
+  inside your check. Do not trust the file to grade itself.
+- Assume bash, coreutils, python3, and the source files are all available.
+- The check must FAIL if the file is missing or empty.'
+
+[ "${SETT_BRIEF:-strict}" = "guided" ] && BRIEF="$BRIEF$GUIDED_EXTRA"
+echo "gate-test: model=$MODEL brief=${SETT_BRIEF:-strict}  points=$(printf '%s\n' "$POINTS" | wc -l)"
+echo
+
+real=0; correct=0; both=0; discerning=0; n=0; wrote=0
+: > "$WORK/results.tsv"
+
+while IFS='|' read -r id fname task; do
+  [ -n "$id" ] || continue
+  n=$((n+1))
+  printf '%-4s %-10s ' "$id" "$fname"
+
+  prompt="$BRIEF
+
+The file is: \$OUT/$fname
+What it should contain: $task
+
+Write the check now."
+
+  raw=""
+  if ! raw="$(timeout 180 pi -p "$prompt" --model "$MODEL" --no-tools < /dev/null 2>"$WORK/$id.err")"; then
+    echo "MODEL-ERROR"
+    printf '%s\t%s\t%s\t%s\n' "$id" "-" "-" "MODEL-ERROR" >> "$WORK/results.tsv"
+    continue
+  fi
+
+  # Keep the WHOLE code block. Truncating to one line penalises a model that
+  # legitimately writes multi-line bash. If fences are present, take exactly
+  # what is inside them; otherwise drop obvious prose lines and keep the rest.
+  if printf '%s' "$raw" | grep -q '^```'; then
+    check="$(printf '%s' "$raw" | sed -n '/^```/,/^```$/p' | sed '1d;$d')"
+  else
+    check="$(printf '%s' "$raw" | grep -v '^[[:space:]]*$' \
+      | grep -vE "^(I'll|I will|Here|Let me|First|Sure|Okay|The check|This )" )"
+  fi
+  printf '%s\n' "$check" > "$WORK/$id.check"
+  [ -n "$check" ] && wrote=$((wrote+1))
+
+  # Gate A — must FAIL with no artifact
+  a=FAIL_OPEN
+  if ! OUT="$EMPTY" timeout 60 bash -c "$check" >/dev/null 2>&1; then a=OK; fi
+  # Gate B — must PASS against known-good gold
+  b=NO
+  if OUT="$GOLD" timeout 60 bash -c "$check" >/dev/null 2>&1; then b=OK; fi
+  # Gate C — must FAIL against a wrong-but-present artifact
+  c=NOT_DISCERNING
+  if ! OUT="$WRONG" timeout 60 bash -c "$check" >/dev/null 2>&1; then c=OK; fi
+
+  [ "$a" = OK ] && real=$((real+1))
+  [ "$b" = OK ] && correct=$((correct+1))
+  [ "$c" = OK ] && discerning=$((discerning+1))
+  if [ "$a" = OK ] && [ "$b" = OK ] && [ "$c" = OK ]; then
+    both=$((both+1)); echo "TRUE GATE"
+  elif [ "$b" = OK ] && [ "$c" != OK ]; then
+    echo "existence-test only (accepts a wrong answer)"
+  elif [ "$b" != OK ] && [ "$a" = OK ]; then
+    echo "wrong (rejects the correct answer)"
+  else
+    echo "broken"
+  fi
+  printf '%s\t%s\t%s\t%s\t%s\n' "$id" "$a" "$b" "$c" "$(printf '%s' "$check" | tr '\n' ';')" >> "$WORK/results.tsv"
+done <<< "$POINTS"
+
+echo
+echo "----------------------------------------------------"
+echo "model:            $MODEL"
+echo "points:           $n"
+echo "produced a check: $wrote"
+echo "real (gate A):    $real/$n   fails without the artifact"
+echo "correct (gate B): $correct/$n   passes the known-good gold"
+echo "discerning (C):   $discerning/$n   rejects a wrong answer"
+echo "TRUE GATES:       $both/$n   <- the seat score"
+echo "----------------------------------------------------"
+echo "detail: $WORK/results.tsv"
