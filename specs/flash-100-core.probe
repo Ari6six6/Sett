@@ -1,0 +1,101 @@
+# spec: flash-100-core
+# out:  /home/michael/karte/parkour/out/flash100
+# bar:  20
+#
+# Retro-fit of machine checks onto the GOLD (flash-100, 2026-07-29).
+# The original spec's only failure condition was "output file missing", so
+# DONE proved a file appeared — not that it was right. These checks compute
+# ground truth independently and compare. Read-only: use `probe verify`.
+# Re-runnable as a real gym against a fresh out dir with `probe run`.
+
+## 11 stix-bytes
+do:    Write only the byte size (digits, no other text) of /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json to $OUT/11.txt
+check: test "$(tr -d '[:space:]' < "$OUT/11.txt")" = "$(stat -c%s /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json)"
+
+## 12 stix-bundle-type
+do:    Write the top-level "type" field of the STIX file /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json to $OUT/12.txt
+check: test "$(tr -d '[:space:]' < "$OUT/12.txt")" = "$(python3 -c 'import json;print(json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["type"])')"
+
+## 13 stix-object-count
+do:    Write the number of entries in the STIX bundle's "objects" array to $OUT/13.txt
+check: test "$(tr -d '[:space:]' < "$OUT/13.txt")" = "$(python3 -c 'import json;print(len(json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"]))')"
+
+## 14 stix-type-histogram
+do:    Write a JSON object of the 5 most common STIX object "type" values and their counts to $OUT/14.json
+check: python3 -c 'import json,collections,os;g=json.load(open(os.environ["OUT"]+"/14.json"));o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];t=dict(collections.Counter(x["type"] for x in o).most_common(5));raise SystemExit(0 if {k:int(v) for k,v in g.items()}==t else 1)'
+
+## 15 stix-first-attack-pattern
+do:    Write the "name" of the first object of type attack-pattern in the STIX bundle to $OUT/15.txt
+check: python3 -c 'import json,os;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];n=next(x["name"] for x in o if x["type"]=="attack-pattern");raise SystemExit(0 if open(os.environ["OUT"]+"/15.txt").read().strip()==n else 1)'
+
+## 16 kev-catalog-version
+do:    Write the catalogVersion field of /home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json to $OUT/16.txt
+check: test "$(tr -d '[:space:]' < "$OUT/16.txt")" = "$(python3 -c 'import json;print(json.load(open("/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json"))["catalogVersion"])')"
+
+## 17 kev-count-agrees
+do:    Write the KEV "count" field and the length of its "vulnerabilities" array, space separated, to $OUT/17.txt
+check: test "$(tr -s '[:space:]' ' ' < "$OUT/17.txt" | sed 's/ *$//')" = "$(python3 -c 'import json;d=json.load(open("/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json"));print(d["count"],len(d["vulnerabilities"]))')"
+
+## 18 kev-first-cve
+do:    Write the cveID of the first entry in the KEV vulnerabilities array to $OUT/18.txt
+check: test "$(tr -d '[:space:]' < "$OUT/18.txt")" = "$(python3 -c 'import json;print(json.load(open("/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json"))["vulnerabilities"][0]["cveID"])')"
+
+## 19 kev-ransomware-known
+do:    Count KEV entries whose knownRansomwareCampaignUse equals Known; write the number to $OUT/19.txt
+check: test "$(tr -d '[:space:]' < "$OUT/19.txt")" = "$(python3 -c 'import json;d=json.load(open("/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json"));print(sum(1 for v in d["vulnerabilities"] if v.get("knownRansomwareCampaignUse")=="Known"))')"
+
+## 20 kev-top-vendor
+do:    Write the single most common vendorProject value in the KEV catalog to $OUT/20.txt
+check: test "$(tr -d '[:space:]' < "$OUT/20.txt")" = "$(python3 -c 'import json,collections;d=json.load(open("/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json"));print(collections.Counter(v["vendorProject"] for v in d["vulnerabilities"]).most_common(1)[0][0])')"
+
+## 21 stix-intrusion-set-count
+do:    Count STIX objects of type intrusion-set; write the number to $OUT/21.txt
+check: test "$(tr -d '[:space:]' < "$OUT/21.txt")" = "$(python3 -c 'import json;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];print(sum(1 for x in o if x["type"]=="intrusion-set"))')"
+
+## 22 stix-malware-count
+do:    Count STIX objects of type malware; write the number to $OUT/22.txt
+check: test "$(tr -d '[:space:]' < "$OUT/22.txt")" = "$(python3 -c 'import json;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];print(sum(1 for x in o if x["type"]=="malware"))')"
+
+## 23 stix-relationship-count
+do:    Count STIX objects of type relationship; write the number to $OUT/23.txt
+check: test "$(tr -d '[:space:]' < "$OUT/23.txt")" = "$(python3 -c 'import json;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];print(sum(1 for x in o if x["type"]=="relationship"))')"
+
+## 24 stix-t1059-lookup
+do:    Find the attack-pattern whose mitre-attack external_id is T1059; write its STIX id and name as JSON to $OUT/24.json
+check: python3 -c 'import json,os;g=json.load(open(os.environ["OUT"]+"/24.json"));o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];m=[x for x in o if x["type"]=="attack-pattern" and any(r.get("external_id")=="T1059" and r.get("source_name")=="mitre-attack" for r in x.get("external_references",[]))][0];raise SystemExit(0 if g.get("id")==m["id"] and g.get("name")==m["name"] else 1)'
+
+## 25 stix-sha256
+do:    Write the sha256sum of /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json to $OUT/25.txt
+check: grep -qF "$(sha256sum /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json | cut -d' ' -f1)" "$OUT/25.txt"
+
+## 26 kev-sha256
+do:    Write the sha256sum of /home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json to $OUT/26.txt
+check: grep -qF "$(sha256sum /home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json | cut -d' ' -f1)" "$OUT/26.txt"
+
+## 29 kev-unique-cves
+do:    Write the number of unique cveID values in the KEV catalog to $OUT/29.txt
+check: test "$(tr -d '[:space:]' < "$OUT/29.txt")" = "$(python3 -c 'import json;d=json.load(open("/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json"));print(len({v["cveID"] for v in d["vulnerabilities"]}))')"
+
+## 84 write-hello
+do:    Write exactly the word hello to $OUT/84-hello.txt
+check: test "$(tr -d '[:space:]' < "$OUT/84-hello.txt")" = "hello"
+
+## 85 copy-hello
+do:    Copy $OUT/84-hello.txt to $OUT/85-hello-copy.txt
+check: cmp -s "$OUT/84-hello.txt" "$OUT/85-hello-copy.txt"
+
+## 87 sha256-of-84
+do:    Write the sha256sum of $OUT/84-hello.txt to $OUT/87.txt
+check: grep -qF "$(sha256sum "$OUT/84-hello.txt" | cut -d' ' -f1)" "$OUT/87.txt"
+
+## 88 json-roundtrip
+do:    Write the JSON object {"ok": true} to $OUT/88.json
+check: python3 -c 'import json,os;raise SystemExit(0 if json.load(open(os.environ["OUT"]+"/88.json"))=={"ok":True} else 1)'
+
+## 89 seq-1-5
+do:    Write the numbers 1 through 5, one per line, to $OUT/89.txt
+check: test "$(tr -s '[:space:]' ' ' < "$OUT/89.txt" | sed 's/ *$//')" = "1 2 3 4 5"
+
+## 90 basename
+do:    Write the basename of /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json to $OUT/90.txt
+check: test "$(tr -d '[:space:]' < "$OUT/90.txt")" = "enterprise-attack-stix21.json"
