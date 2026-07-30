@@ -1,0 +1,59 @@
+# spec: analyst-12
+# out:  /home/michael/SETT-repo/out/analyst-12
+#
+# Tier 2 gym: multi-step analyst work. Every point requires reading a corpus,
+# filtering or joining, and reducing to one exact value. Three points join
+# ACROSS corpora (KEV x EPSS), which is where small models usually drift.
+#
+# Fully offline. Sources:
+#   STIX  /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json
+#   KEV   /home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json
+#   EPSS  /home/michael/lab/structured-data/raw/epss/epss-hardlinks.json
+
+## 1 epss-max
+do:    In /home/michael/lab/structured-data/raw/epss/epss-hardlinks.json the "data" array holds objects with "cve" and "epss". Write only the cve id with the highest epss score to $OUT/1.txt
+check: test "$(tr -d '[:space:]' < "$OUT/1.txt")" = "$(python3 -c 'import json;d=json.load(open("/home/michael/lab/structured-data/raw/epss/epss-hardlinks.json"))["data"];print(max(d,key=lambda x: float(x["epss"]))["cve"])')"
+
+## 2 epss-above-90
+do:    Count entries in the EPSS file /home/michael/lab/structured-data/raw/epss/epss-hardlinks.json whose epss score is strictly greater than 0.9. Write only the number to $OUT/2.txt
+check: test "$(tr -d '[:space:]' < "$OUT/2.txt")" = "$(python3 -c 'import json;d=json.load(open("/home/michael/lab/structured-data/raw/epss/epss-hardlinks.json"))["data"];print(sum(1 for x in d if float(x["epss"])>0.9))')"
+
+## 3 epss-kev-overlap
+do:    Count how many cve ids in the EPSS file /home/michael/lab/structured-data/raw/epss/epss-hardlinks.json also appear as a cveID in /home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json. Write only the number to $OUT/3.txt
+check: test "$(tr -d '[:space:]' < "$OUT/3.txt")" = "$(python3 -c 'import json;e=json.load(open("/home/michael/lab/structured-data/raw/epss/epss-hardlinks.json"))["data"];k={v["cveID"] for v in json.load(open("/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json"))["vulnerabilities"]};print(sum(1 for x in e if x["cve"] in k))')"
+
+## 4 kev-2024-count
+do:    Count KEV entries in /home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json whose cveID starts with CVE-2024. Write only the number to $OUT/4.txt
+check: test "$(tr -d '[:space:]' < "$OUT/4.txt")" = "$(python3 -c 'import json;v=json.load(open("/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json"))["vulnerabilities"];print(sum(1 for x in v if x["cveID"].startswith("CVE-2024")))')"
+
+## 5 kev-top3-vendors
+do:    Write the three most common vendorProject values in the KEV catalog as a JSON array of strings, most common first, to $OUT/5.json
+check: python3 -c 'import json,collections,os;g=json.load(open(os.environ["OUT"]+"/5.json"));v=json.load(open("/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json"))["vulnerabilities"];t=[a for a,_ in collections.Counter(x["vendorProject"] for x in v).most_common(3)];raise SystemExit(0 if list(g)==t else 1)'
+
+## 6 kev-oldest
+do:    Find the KEV entry with the earliest dateAdded. Write its dateAdded and its cveID separated by one space to $OUT/6.txt
+check: test "$(tr -s '[:space:]' ' ' < "$OUT/6.txt" | sed 's/ *$//')" = "$(python3 -c 'import json;v=json.load(open("/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json"))["vulnerabilities"];o=min(v,key=lambda x:x["dateAdded"]);print(o["dateAdded"],o["cveID"])')"
+
+## 7 stix-tactic-count
+do:    Count STIX objects of type x-mitre-tactic in /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json. Write only the number to $OUT/7.txt
+check: test "$(tr -d '[:space:]' < "$OUT/7.txt")" = "$(python3 -c 'import json;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];print(sum(1 for x in o if x["type"]=="x-mitre-tactic"))')"
+
+## 8 stix-subtechniques
+do:    Count STIX attack-pattern objects whose x_mitre_is_subtechnique field is true. Write only the number to $OUT/8.txt
+check: test "$(tr -d '[:space:]' < "$OUT/8.txt")" = "$(python3 -c 'import json;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];print(sum(1 for x in o if x["type"]=="attack-pattern" and x.get("x_mitre_is_subtechnique")))')"
+
+## 9 stix-deprecated
+do:    Count STIX objects whose x_mitre_deprecated field is exactly true. Write only the number to $OUT/9.txt
+check: test "$(tr -d '[:space:]' < "$OUT/9.txt")" = "$(python3 -c 'import json;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];print(sum(1 for x in o if x.get("x_mitre_deprecated") is True))')"
+
+## 10 kev-epss-mean
+do:    Take the KEV cveIDs that also appear in the EPSS file, average their epss scores, and write that mean to 4 decimal places (for example 0.1234) to $OUT/10.txt
+check: test "$(tr -d '[:space:]' < "$OUT/10.txt")" = "$(python3 -c 'import json,statistics;e=json.load(open("/home/michael/lab/structured-data/raw/epss/epss-hardlinks.json"))["data"];k={v["cveID"] for v in json.load(open("/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json"))["vulnerabilities"]};print(format(statistics.mean([float(x["epss"]) for x in e if x["cve"] in k]),".4f"))')"
+
+## 11 kev-ransomware-vendor
+do:    Among KEV entries where knownRansomwareCampaignUse equals Known, write the single most common vendorProject to $OUT/11.txt
+check: test "$(tr -d '[:space:]' < "$OUT/11.txt")" = "$(python3 -c 'import json,collections;v=json.load(open("/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json"))["vulnerabilities"];print(collections.Counter(x["vendorProject"] for x in v if x.get("knownRansomwareCampaignUse")=="Known").most_common(1)[0][0])')"
+
+## 12 stix-tactic-names
+do:    Write the shortname of every STIX x-mitre-tactic object as a JSON array of strings, sorted alphabetically, to $OUT/12.json
+check: python3 -c 'import json,os;g=json.load(open(os.environ["OUT"]+"/12.json"));o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];t=sorted(x["x_mitre_shortname"] for x in o if x["type"]=="x-mitre-tactic");raise SystemExit(0 if list(g)==t else 1)'

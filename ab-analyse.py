@@ -46,6 +46,7 @@ for a in arms:
     print(f"  arm {a}: {len(d[a])} run(s)")
 print()
 
+min_n = min((len(d[a]) for a in arms), default=0)
 hdr = f"{'id':<4}" + "".join(f"{'arm '+a:<10}" for a in arms) + "bucket"
 print(hdr)
 print("-" * len(hdr))
@@ -65,7 +66,10 @@ for pid in ids:
     if not stable:
         b = "NOISY"
     elif all(f == 1.0 for f in fracs):
-        b = "SOLID"
+        # SOLID at low n means "not yet observed to flip", NOT "stable".
+        # Point 4 of code-sett-8 was 4/4 across two arms at n=2 and then 0/3
+        # on the next run — pooled 4/7. Two runs cannot see a 57% pass rate.
+        b = "SOLID" if min_n >= 3 else "solid?"
     elif all(f == 0.0 for f in fracs):
         b = "DEAD"
     else:
@@ -83,8 +87,13 @@ for a in arms:
     print(f"arm {a}: runs {totals}  mean {mean:.2f}  spread {spread}")
 
 print()
-print(f"SOLID {buckets['SOLID']}   DEAD {buckets['DEAD']}   "
+print(f"SOLID {buckets['SOLID']}   solid? {buckets['solid?']}   DEAD {buckets['DEAD']}   "
       f"NOISY {buckets['NOISY']}   SIGNAL {buckets['SIGNAL']}")
+if min_n < 3:
+    print()
+    print(f"  NOTE: only {min_n} run(s) per arm. Nothing is called SOLID below n=3 —")
+    print("  a point seen passing twice can still be a coin flip. 'solid?' means")
+    print("  not yet observed to flip, which is not the same as stable.")
 print()
 
 if buckets["SIGNAL"] == 0:

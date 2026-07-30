@@ -1,0 +1,18 @@
+# spec: smoke-3
+# out:  /home/michael/SETT-repo/out/smoke-3
+#
+# The harness-proof gym. Three points a Flash-class model should never miss.
+# Runs entirely offline against local files. If this is not green, the problem
+# is the wiring, not the model.
+
+## 1 ready
+do:    Write exactly the word READY, nothing else, to $OUT/1.txt
+check: test "$(tr -d '[:space:]' < "$OUT/1.txt")" = "READY"
+
+## 2 hostname
+do:    Write the output of the command `uname -s` to $OUT/2.txt
+check: test "$(tr -d '[:space:]' < "$OUT/2.txt")" = "$(uname -s)"
+
+## 3 count-probe-specs
+do:    Count the files ending in .probe under /home/michael/SETT-repo/specs and write only that number to $OUT/3.txt
+check: test -d /home/michael/SETT-repo/specs && test "$(tr -d '[:space:]' < "$OUT/3.txt")" = "$(find /home/michael/SETT-repo/specs -maxdepth 1 -name '*.probe' | wc -l | tr -d '[:space:]')"

@@ -62,4 +62,4 @@ check: python3 -c 'import importlib.util,os,tempfile;s=importlib.util.spec_from_
 g=tempfile.mktemp();pathlib.Path(g).write_text(good);b=tempfile.mktemp();pathlib.Path(b).write_text(bad)
 assert m.lint(g)==[], m.lint(g)
 assert sorted(str(x) for x in m.lint(b))==["2","3"], m.lint(b)
-assert m.lint("/home/michael/SETT-repo/specs/analyst-12.probe")==[]'
+assert m.lint("/home/michael/SETT-repo/fixtures/specs/sample-12.probe")==[]'
