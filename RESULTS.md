@@ -55,11 +55,30 @@ spacing. A human reviewer skims that and passes it. The check did not.
 file**. Two candidate files exist in that directory. The model read the wrong
 one, wrote `25842` against a truth of `25843`, and reported "Done."
 
-One documented instance, not yet a law. The aggregate correlation is weaker
-than it looks: 5/12 of `analyst-12` points name an absolute path versus 6/23 of
-`flash-100-core`. Directionally consistent with the scores, far from proof.
-**Open question for the next run: hold the model fixed and vary only whether
-the instruction names the path.**
+**This is weaker than it first appears, and the retraction matters more than
+the anecdote.**
+
+The two candidate files differ in exactly one respect. Of ten plausible
+questions about that bundle, only *one* — the object count — gives a different
+answer between STIX 2.0 and 2.1:
+
+| question | 2.0 | 2.1 |
+|---|---|---|
+| object count | 25842 | **25843** |
+| attack-pattern · malware · intrusion-set · relationship | 858 · 729 · 189 · 21025 | identical |
+| tactic · tool · course-of-action · deprecated · sub-technique | 15 · 95 · 268 · 289 · 493 | identical |
+
+So reading the wrong file was almost always harmless here. The one case where
+it mattered is the one case that was observed. That is a coincidence worth
+naming rather than a law worth citing.
+
+The aggregate correlation is also thin: 5/12 of `analyst-12` points name an
+absolute path versus 6/23 of `flash-100-core`. Directionally consistent with
+the scores; far from proof.
+
+**Status: one observation. No controlled test was possible on this file pair,
+because the decoy does not discriminate. A real grounding experiment needs a
+corpus where ambiguous references produce genuinely different answers.**
 
 ---
 
