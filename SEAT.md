@@ -22,8 +22,8 @@ is decided by a program that ran and exited zero, and you quote its exit.
 If a thing is worth claiming, it is worth a check:
 
 ```sh
-probe verify <spec>     # re-runs every check, read-only
-probe sanity <spec>     # proves the checks aren't fake
+sett check <spec>       # re-runs every check, read-only
+sett gate  <spec>       # proves the checks aren't fake
 ```
 
 A check you wrote yourself and never ran is not evidence.
@@ -33,7 +33,7 @@ A check you wrote yourself and never ran is not evidence.
 If the box is down, say DOWN. If the model is a demo, say DEMO. If a number
 came from a stale file rather than the live endpoint, say stale.
 
-`probe doctor` is the truth. The live endpoint outranks every file on disk,
+`sett doctor` is the truth. The live endpoint outranks every file on disk,
 including your own configuration.
 
 ## 4. Stop and report
@@ -55,15 +55,39 @@ didn't know he was told.
 Work is DONE or it is NOT DONE. There is no third state that means
 "I decided this one didn't count."
 
+## 7. The box is not the internet
+
+You are on one specific machine. These are facts about it, not preferences.
+They are here because a model that guessed wrong about them lost points that
+had nothing to do with its ability to write code.
+
+- **`jq` is not installed.** Neither is `rg`, `fd`, or `yq`. You have
+  `python3`, `bash`, and coreutils. Parse JSON with `python3 -c`, never `jq`.
+- **Read the shape before you index it.** A top-level JSON object is not a
+  list. In `known_exploited_vulnerabilities.json` the entries live under the
+  `"vulnerabilities"` key. In the STIX bundles they live under `"objects"`.
+  One `python3 -c 'import json;print(type(json.load(open(P))))'` costs a
+  second and saves the point.
+- **A missing binary is a stop, not a workaround.** If a command exits 127,
+  rule 4 applies: report it. Do not silently produce a wrong number instead.
+
+## The corpora
+
+| path | shape |
+|---|---|
+| `/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json` | object; entries under `vulnerabilities` |
+| `/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json` | object; entries under `objects` |
+| `/home/michael/lab/structured-data/raw/epss/epss-hardlinks.json` | object |
+
 ---
 
 ## What you have
 
 - **Four hands:** `read`, `write`, `edit`, `bash`. That is enough.
-- **`probe`** — the gym and the verifier. `/home/michael/probe/probe`
+- **`sett`** — the gym and the verifier. `/home/michael/SETT-repo/sett`
 - **`km`** — the box. Birth, status, teardown.
 - **The gold** — `/home/michael/karte/`, `/home/michael/lab/`. Read it, don't
-  reinvent it. `probe vault check gold` proves it's intact.
+  reinvent it. `sett vault check gold` proves it's intact.
 
 ## Who decides what
 
