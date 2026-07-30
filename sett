@@ -75,14 +75,17 @@ parse_spec() {
     /^[[:space:]]*$/ { key=""; next }
     /^#/ { next }
     {
-      if (key == "do")    d = d "\\n" $0
-      else if (key == "check") c = c "\\n" $0
+      if (key == "do")    d = d "\001" $0
+      else if (key == "check") c = c "\001" $0
     }
     END { flush() }
   ' "$f"
 }
 
-unesc() { printf '%b' "$1"; }
+# SOH is the line-join sentinel. Deliberately NOT printf %b: a check may
+# contain literal backslashes (regexes, python \n inside string literals) and
+# %b would eat them before the check ever ran.
+unesc() { printf '%s' "$1" | tr '\001' '\n'; }
 
 # ------------------------------------------------------------------- run state
 # state.tsv is append-only. Latest line for an id wins.

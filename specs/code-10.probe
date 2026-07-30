@@ -1,0 +1,65 @@
+# spec: code-10
+# out:  /home/michael/SETT-repo/out/code-10
+#
+# The coding gym. Same four fields as every other spec — the only difference is
+# that `check:` runs a hidden test suite instead of comparing a value.
+#
+# The model receives `do:` and never `check:`, so it cannot write code shaped to
+# the test. A point passes only when real behaviour is exercised: import the
+# artifact, call it, assert on outputs and edge cases.
+#
+# Mix is deliberate: half generic algorithmic work, half operator-domain work on
+# the corpora this box actually holds (KEV, STIX). Difficulty rises down the file.
+
+## 1 dedupe-order
+do:    Write a Python file $OUT/1.py defining dedupe(items) which returns a new list with duplicates removed, preserving first-occurrence order. It must handle an empty list and unhashable-free inputs of ints and strings.
+check: python3 -c 'import importlib.util,os,sys;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/1.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);assert m.dedupe([1,2,1,3,2])==[1,2,3];assert m.dedupe([])==[];assert m.dedupe(["b","a","b"])==["b","a"];assert m.dedupe([1,1,1])==[1]'
+
+## 2 merge-intervals
+do:    Write a Python file $OUT/2.py defining merge(intervals) which takes a list of [start,end] pairs and returns them merged and sorted by start. Touching intervals like [1,3] and [3,5] merge into [1,5].
+check: python3 -c 'import importlib.util,os;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/2.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);assert m.merge([[1,3],[2,6],[8,10]])==[[1,6],[8,10]];assert m.merge([])==[];assert m.merge([[1,3],[3,5]])==[[1,5]];assert m.merge([[5,6],[1,2]])==[[1,2],[5,6]]'
+
+## 3 flatten-dict
+do:    Write a Python file $OUT/3.py defining flatten(d, sep=".") which flattens a nested dict into one level, joining keys with sep. {"a":{"b":1}} becomes {"a.b":1}. Non-dict values are left alone; empty dicts vanish.
+check: python3 -c 'import importlib.util,os;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/3.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);assert m.flatten({"a":{"b":1}})=={"a.b":1};assert m.flatten({"a":1})=={"a":1};assert m.flatten({})=={};assert m.flatten({"a":{"b":{"c":2}},"d":3})=={"a.b.c":2,"d":3};assert m.flatten({"a":{"b":1}},sep="/")=={"a/b":1}'
+
+## 4 retry-backoff
+do:    Write a Python file $OUT/4.py defining retry(fn, attempts=3) which calls fn() and returns its result; on exception it retries up to `attempts` total calls, and re-raises the last exception if all fail. It must not sleep.
+check: python3 -c 'import importlib.util,os;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/4.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);c=[0]
+def flaky():
+    c[0]+=1
+    if c[0]<3: raise ValueError("x")
+    return "ok"
+assert m.retry(flaky)=="ok" and c[0]==3
+def always(): raise KeyError("k")
+try:
+    m.retry(always,attempts=2); raise SystemExit(1)
+except KeyError: pass'
+
+## 5 kev-count-lib
+do:    Write a Python file $OUT/5.py defining ransomware_count(path) which loads the CISA KEV JSON at `path` and returns how many entries under "vulnerabilities" have knownRansomwareCampaignUse equal to "Known".
+check: python3 -c 'import importlib.util,os,json;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/5.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);P="/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json";d=json.load(open(P));e=sum(1 for v in d["vulnerabilities"] if v.get("knownRansomwareCampaignUse")=="Known");assert m.ransomware_count(P)==e, "wrong count"'
+
+## 6 kev-to-csv
+do:    Write a Python file $OUT/6.py defining to_csv(path) which loads the CISA KEV JSON at `path` and returns a CSV string. First line must be the header cveID,vendorProject,product — then one line per vulnerability in file order. Use the csv module so values containing commas are quoted correctly.
+check: python3 -c 'import importlib.util,os,json,csv,io;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/6.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);P="/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json";out=m.to_csv(P);r=list(csv.reader(io.StringIO(out)));d=json.load(open(P))["vulnerabilities"];assert r[0]==["cveID","vendorProject","product"], r[0];assert len(r)-1==len(d), (len(r)-1,len(d));assert r[1][0]==d[0]["cveID"];assert r[-1][0]==d[-1]["cveID"]'
+
+## 7 stix-histogram-lib
+do:    Write a Python file $OUT/7.py defining type_histogram(path, n) which loads a STIX bundle JSON at `path` and returns a list of (type, count) tuples for the n most common values of the "type" field across the "objects" array, most common first.
+check: python3 -c 'import importlib.util,os,json,collections;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/7.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);P="/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json";o=json.load(open(P))["objects"];e=collections.Counter(x["type"] for x in o).most_common(3);g=[tuple(x) for x in m.type_histogram(P,3)];assert g==e, (g,e)'
+
+## 8 stix-resolve-refs
+do:    Write a Python file $OUT/8.py defining group_software(path, group_name) which loads a STIX bundle and returns a sorted list of distinct names of malware or tool objects that the intrusion-set named group_name "uses". Resolve relationship objects via source_ref and target_ref.
+check: python3 -c 'import importlib.util,os,json;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/8.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);P="/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json";o=json.load(open(P))["objects"];b={x["id"]:x for x in o};e=sorted({b[r["target_ref"]]["name"] for r in o if r["type"]=="relationship" and r["relationship_type"]=="uses" and r.get("source_ref") in b and r.get("target_ref") in b and b[r["source_ref"]]["type"]=="intrusion-set" and b[r["source_ref"]].get("name")=="APT29" and b[r["target_ref"]]["type"] in ("malware","tool")});g=sorted(m.group_software(P,"APT29"));assert g==e, (len(g),len(e))'
+
+## 9 cli-tool
+do:    Write an executable bash script $OUT/9.sh taking one argument, a path to the CISA KEV JSON. It must print exactly two lines: "total: N" then "ransomware: M", where N is the number of vulnerabilities and M the count with knownRansomwareCampaignUse equal to "Known". Exit 2 with a message on stderr if given no argument.
+check: bash -c 'set -e;P="/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json";read -r n r < <(python3 -c "import json;d=json.load(open(\"$P\"));print(len(d[\"vulnerabilities\"]),sum(1 for v in d[\"vulnerabilities\"] if v.get(\"knownRansomwareCampaignUse\")==\"Known\"))");out=$(bash "$OUT/9.sh" "$P");[ "$(printf "%s" "$out" | sed -n 1p)" = "total: $n" ];[ "$(printf "%s" "$out" | sed -n 2p)" = "ransomware: $r" ];if bash "$OUT/9.sh" >/dev/null 2>&1; then exit 1; fi'
+
+## 10 spec-linter
+do:    Write a Python file $OUT/10.py defining lint(path) which reads a SETT .probe spec file and returns a list of point ids (strings) that are missing a "check:" field. A point starts with a line beginning "## " followed by its id. Return an empty list when every point has a check.
+check: python3 -c 'import importlib.util,os,tempfile;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/10.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);good="# spec: x\n\n## 1 a\ndo:    x\ncheck: true\n\n## 2 b\ndo:    y\ncheck: true\n";bad="# spec: x\n\n## 1 a\ndo:    x\ncheck: true\n\n## 2 b\ndo:    y\n\n## 3 c\ndo:    z\n";import pathlib
+g=tempfile.mktemp();pathlib.Path(g).write_text(good);b=tempfile.mktemp();pathlib.Path(b).write_text(bad)
+assert m.lint(g)==[], m.lint(g)
+assert sorted(str(x) for x in m.lint(b))==["2","3"], m.lint(b)
+assert m.lint("/home/michael/SETT-repo/specs/analyst-12.probe")==[]'
