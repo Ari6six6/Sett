@@ -115,3 +115,40 @@ Four fields. The operator writes `do` and `check`. The model never sees `check`
 3. **A check must fail when the artifact is wrong.** Otherwise it is an existence
    test, and an existence test is what let a hundred-point gym score 100/100
    while proving only that files appeared.
+4. **A check must assert against something that cannot move.** Laws 2 and 3 both
+   ask about the artifact. Neither asks whether the *ground* is still there.
+
+## The fourth law was paid for
+
+`smoke-3` point 3 computed its expected value with `find` over
+`/home/michael/probe/specs`. That directory vanished when `probe` was merged
+into `sett`. `find` on a missing directory returns nothing, so the expected
+value silently became `0`.
+
+The check did not break. It **inverted**: the model's correct answer, `4`,
+began FAILING, and a garbage answer, `0`, began PASSING. It had been sitting
+in the ledger as a PASS.
+
+The same bug was in the law. `SEAT.md` told the model to verify its work with
+`probe verify` at `/home/michael/probe/probe` — so every gym ever run had been
+scored under instructions naming a tool that exits 127.
+
+And a third costume: `code-sett-8` point 2 asserted `["pass"]==3` against
+`runs/smoke-3/state.tsv`, an append-only file that the next run would have
+changed underneath it.
+
+One bug, three costumes: **a check whose expected value is computed from
+something that can move.** Hence `fixtures/`, and hence:
+
+## The instruments
+
+| tool | question it asks | what it caught |
+|---|---|---|
+| `sett gate` | is the check fake — does it pass with **no** artifact? | four fake checks at authoring time |
+| `gate-c.sh` | does it pass on a **wrong-but-present** artifact? | `smoke-3` point 3 |
+| `rot.sh` | does every path the repo **asserts** still exist? | the dead law pointer |
+| `ab.sh` | is this difference **real**, or is it one run's luck? | a 6/8-vs-4/8 "result" that was noise |
+
+`gate-c.sh` is built on `points()` and `checks()` — two of the eight utilities
+`code-sett-8` asked the model to write. The gym's output audits the next gym.
+That is the only kind of compounding this repo is trying to have.
