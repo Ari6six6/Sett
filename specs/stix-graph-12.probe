@@ -17,45 +17,45 @@ do:    In /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json, c
 check: python3 -c 'import json,collections,os;g=json.load(open(os.environ["OUT"]+"/1.json"));o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];t=[a for a,_ in collections.Counter(x["relationship_type"] for x in o if x["type"]=="relationship").most_common(3)];raise SystemExit(0 if list(g)==t else 1)'
 
 ## 2 mitigates-count
-do:    Count relationship objects whose relationship_type is "mitigates". Write only the number to $OUT/2.txt
+do:    In /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json, count relationship objects whose relationship_type is "mitigates". Write only the number to $OUT/2.txt
 check: test "$(tr -d '[:space:]' < "$OUT/2.txt")" = "$(python3 -c 'import json;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];print(sum(1 for x in o if x["type"]=="relationship" and x["relationship_type"]=="mitigates"))')"
 
 ## 3 subtechnique-count
-do:    Count relationship objects whose relationship_type is "subtechnique-of". Write only the number to $OUT/3.txt
+do:    In /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json, count relationship objects whose relationship_type is "subtechnique-of". Write only the number to $OUT/3.txt
 check: test "$(tr -d '[:space:]' < "$OUT/3.txt")" = "$(python3 -c 'import json;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];print(sum(1 for x in o if x["type"]=="relationship" and x["relationship_type"]=="subtechnique-of"))')"
 
 ## 4 attributed-to-count
-do:    Count relationship objects whose relationship_type is "attributed-to". Write only the number to $OUT/4.txt
+do:    In /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json, count relationship objects whose relationship_type is "attributed-to". Write only the number to $OUT/4.txt
 check: test "$(tr -d '[:space:]' < "$OUT/4.txt")" = "$(python3 -c 'import json;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];print(sum(1 for x in o if x["type"]=="relationship" and x["relationship_type"]=="attributed-to"))')"
 
 ## 5 detects-count
-do:    Count relationship objects whose relationship_type is "detects". Write only the number to $OUT/5.txt
+do:    In /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json, count relationship objects whose relationship_type is "detects". Write only the number to $OUT/5.txt
 check: test "$(tr -d '[:space:]' < "$OUT/5.txt")" = "$(python3 -c 'import json;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];print(sum(1 for x in o if x["type"]=="relationship" and x["relationship_type"]=="detects"))')"
 
 ## 6 top-group-by-software
-do:    Using "uses" relationships where the source is an intrusion-set and the target is a malware or tool, find the intrusion-set with the most distinct such relationships. Write only its name to $OUT/6.txt
+do:    In /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json, using "uses" relationships where the source is an intrusion-set and the target is a malware or tool, find the intrusion-set with the most distinct such relationships. Write only its name to $OUT/6.txt
 check: test "$(cat "$OUT/6.txt" | tr -d '\n' | sed 's/^ *//; s/ *$//')" = "$(python3 -c 'import json,collections;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];b={x["id"]:x for x in o};c=collections.Counter();[c.update([b[r["source_ref"]]["name"]]) for r in o if r["type"]=="relationship" and r["relationship_type"]=="uses" and r.get("source_ref") in b and r.get("target_ref") in b and b[r["source_ref"]]["type"]=="intrusion-set" and b[r["target_ref"]]["type"] in ("malware","tool")];print(c.most_common(1)[0][0])')"
 
 ## 7 apt29-software-count
-do:    Count the "uses" relationships whose source is the intrusion-set named APT29 and whose target is a malware or tool. Write only the number to $OUT/7.txt
+do:    In /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json, count the "uses" relationships whose source is the intrusion-set named APT29 and whose target is a malware or tool. Write only the number to $OUT/7.txt
 check: test "$(tr -d '[:space:]' < "$OUT/7.txt")" = "$(python3 -c 'import json;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];b={x["id"]:x for x in o};print(sum(1 for r in o if r["type"]=="relationship" and r["relationship_type"]=="uses" and r.get("source_ref") in b and r.get("target_ref") in b and b[r["source_ref"]]["type"]=="intrusion-set" and b[r["source_ref"]].get("name")=="APT29" and b[r["target_ref"]]["type"] in ("malware","tool")))')"
 
 ## 8 top-software-by-groups
-do:    Using "uses" relationships from intrusion-sets to malware or tools, find the malware or tool used by the most distinct intrusion-sets. Write only its name to $OUT/8.txt
+do:    In /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json, using "uses" relationships from intrusion-sets to malware or tools, find the malware or tool used by the most distinct intrusion-sets. Write only its name to $OUT/8.txt
 check: test "$(cat "$OUT/8.txt" | tr -d '\n' | sed 's/^ *//; s/ *$//')" = "$(python3 -c 'import json,collections;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];b={x["id"]:x for x in o};c=collections.Counter();[c.update([b[r["target_ref"]]["name"]]) for r in o if r["type"]=="relationship" and r["relationship_type"]=="uses" and r.get("source_ref") in b and r.get("target_ref") in b and b[r["source_ref"]]["type"]=="intrusion-set" and b[r["target_ref"]]["type"] in ("malware","tool")];print(c.most_common(1)[0][0])')"
 
 ## 9 max-groups-per-technique
-do:    Using "uses" relationships from intrusion-sets to attack-patterns, find the highest number of intrusion-sets associated with any single attack-pattern. Write only that number to $OUT/9.txt
+do:    In /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json, using "uses" relationships from intrusion-sets to attack-patterns, find the highest number of intrusion-sets associated with any single attack-pattern. Write only that number to $OUT/9.txt
 check: test "$(tr -d '[:space:]' < "$OUT/9.txt")" = "$(python3 -c 'import json,collections;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];b={x["id"]:x for x in o};c=collections.Counter();[c.update([b[r["target_ref"]]["name"]]) for r in o if r["type"]=="relationship" and r["relationship_type"]=="uses" and r.get("source_ref") in b and r.get("target_ref") in b and b[r["source_ref"]]["type"]=="intrusion-set" and b[r["target_ref"]]["type"]=="attack-pattern"];print(c.most_common(1)[0][1])')"
 
 ## 10 powershell-groups
-do:    Count how many "uses" relationships link an intrusion-set to the attack-pattern named exactly PowerShell. Write only the number to $OUT/10.txt
+do:    In /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json, count how many "uses" relationships link an intrusion-set to the attack-pattern named exactly PowerShell. Write only the number to $OUT/10.txt
 check: test "$(tr -d '[:space:]' < "$OUT/10.txt")" = "$(python3 -c 'import json;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];b={x["id"]:x for x in o};print(sum(1 for r in o if r["type"]=="relationship" and r["relationship_type"]=="uses" and r.get("source_ref") in b and r.get("target_ref") in b and b[r["source_ref"]]["type"]=="intrusion-set" and b[r["target_ref"]]["type"]=="attack-pattern" and b[r["target_ref"]].get("name")=="PowerShell"))')"
 
 ## 11 top-mitigated-technique
-do:    Using "mitigates" relationships whose target is an attack-pattern, find the attack-pattern with the most mitigations. Write only its name to $OUT/11.txt
+do:    In /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json, using "mitigates" relationships whose target is an attack-pattern, find the attack-pattern with the most mitigations. Write only its name to $OUT/11.txt
 check: test "$(cat "$OUT/11.txt" | tr -d '\n' | sed 's/^ *//; s/ *$//')" = "$(python3 -c 'import json,collections;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];b={x["id"]:x for x in o};c=collections.Counter();[c.update([b[r["target_ref"]]["name"]]) for r in o if r["type"]=="relationship" and r["relationship_type"]=="mitigates" and r.get("target_ref") in b and b[r["target_ref"]]["type"]=="attack-pattern"];print(c.most_common(1)[0][0])')"
 
 ## 12 distinct-mitigated-techniques
-do:    Count the distinct attack-patterns that have at least one "mitigates" relationship pointing at them. Write only the number to $OUT/12.txt
+do:    In /home/michael/lab/structured-data/raw/enterprise-attack-stix21.json, count the distinct attack-patterns that have at least one "mitigates" relationship pointing at them. Write only the number to $OUT/12.txt
 check: test "$(tr -d '[:space:]' < "$OUT/12.txt")" = "$(python3 -c 'import json;o=json.load(open("/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json"))["objects"];b={x["id"]:x for x in o};print(len({r["target_ref"] for r in o if r["type"]=="relationship" and r["relationship_type"]=="mitigates" and r.get("target_ref") in b and b[r["target_ref"]]["type"]=="attack-pattern"}))')"
