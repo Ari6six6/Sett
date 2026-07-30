@@ -64,11 +64,11 @@ say
 # Only files that ASSERT are audited: the law, the constitution, the specs.
 # sett/gate-c.sh/rot.sh quote dead paths in their comments on purpose — that is
 # history, not a claim about the box.
-hits="$(for f in SEAT.md README.md specs/*.probe; do
+hits="$(for f in SEAT.md README.md SHOWCASE.md specs/*.probe; do
           [ -f "$f" ] && audit_file "$f"
         done)"
 
-allpaths="$(for f in SEAT.md README.md specs/*.probe; do
+allpaths="$(for f in SEAT.md README.md SHOWCASE.md specs/*.probe; do
               [ -f "$f" ] && grep -ohE '/home/[A-Za-z0-9_./-]+' "$f" 2>/dev/null
             done | sed 's/[`",);:.]*$//' | sort -u | grep -v '^/home/\.$' | grep -v '^/home$')"
 total="$(printf '%s' "$allpaths" | grep -c . || true)"
@@ -106,7 +106,7 @@ done < <(
   # fences. Prose says things like "SETT is one program" and that is not a
   # command; reading it as one is how an audit earns a reputation for crying
   # wolf, which is how audits get ignored.
-  for f in SEAT.md README.md RESULTS.md; do
+  for f in SEAT.md README.md RESULTS.md SHOWCASE.md; do
     [ -f "$f" ] || continue
     grep -oE '`sett [a-z-]+' "$f" | sed 's/`//' | awk -v f="$f" '{print f ":" $2}'
     # only ```sh fences — README also has a plain fence listing the repo's

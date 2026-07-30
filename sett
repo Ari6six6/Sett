@@ -503,6 +503,7 @@ sett — the brain proposes, the captain disposes, the ledger makes faith obsole
     sett gate <spec>             mutation-test the CHECKS (catches fake gates)
         --wrong                  also reject a plausible WRONG artifact (gate C)
     sett rot                     every path the repo asserts — does it exist?
+    sett leak [since]            did any run read the spec with its own checks?
     sett ab <spec> <n> <A> <B>   n runs per arm; is a difference real or luck?
     sett status <spec>           what passed, what's pending
     sett report <spec>           write REPORT.md
@@ -534,6 +535,7 @@ case "${1:-}" in
            fi
            cmd_sanity "$@" ;;
   rot)     shift; exec "$SETT_ROOT/rot.sh" "$@" ;;
+  leak)    shift; exec "$SETT_ROOT/leak.sh" "$@" ;;
   ab)      shift; exec "$SETT_ROOT/ab.sh" "$@" ;;
   score)   shift; cmd_score "$@" ;;
   new)     shift; cmd_new "$@" ;;
