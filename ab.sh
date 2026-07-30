@@ -21,6 +21,15 @@ mkdir -p runs
 
 run_one() {                       # arm  rep  lawfile
   local arm="$1" rep="$2" law="$3"
+  # Archive the PREVIOUS rep before destroying it. Without this only the last
+  # rep survives, and on 2026-07-30 that made two of three failing points
+  # impossible to diagnose after the box was already down. A failure you
+  # cannot open is a failure you cannot learn from.
+  if [ -d "out/$SPEC" ]; then
+    local prev="runs/archive/$SPEC-$(date +%H%M%S)-prev"
+    mkdir -p "$(dirname "$prev")" && cp -r "out/$SPEC" "$prev" 2>/dev/null
+    rm -rf "$prev/__pycache__"
+  fi
   rm -rf "out/$SPEC" "runs/$SPEC"
   local args=(gym "$SPEC")
   [ "$law" != "-" ] && args+=(--law "$law")
