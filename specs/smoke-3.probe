@@ -14,5 +14,5 @@ do:    Write the output of the command `uname -s` to $OUT/2.txt
 check: test "$(tr -d '[:space:]' < "$OUT/2.txt")" = "$(uname -s)"
 
 ## 3 count-probe-specs
-do:    Count the files ending in .probe under /home/michael/probe/specs and write only that number to $OUT/3.txt
-check: test "$(tr -d '[:space:]' < "$OUT/3.txt")" = "$(find /home/michael/probe/specs -maxdepth 1 -name '*.probe' | wc -l | tr -d '[:space:]')"
+do:    Count the files ending in .probe under /home/michael/SETT-repo/specs and write only that number to $OUT/3.txt
+check: test -d /home/michael/SETT-repo/specs && test "$(tr -d '[:space:]' < "$OUT/3.txt")" = "$(find /home/michael/SETT-repo/specs -maxdepth 1 -name '*.probe' | wc -l | tr -d '[:space:]')"
