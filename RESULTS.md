@@ -249,6 +249,64 @@ self-verification path severed.
 The gym's most valuable output today was not a score. It was a list of bugs in
 the operator's own instructions.
 
+### The law A/B — no effect detected, and why that is the useful answer
+
+Question: does repairing `SEAT.md` change what the model produces? Arm A ran
+the bare law preserved at HEAD; arm B the repaired one. Same model, same box,
+same spec, n=2 per arm.
+
+```
+id  arm A     arm B     bucket
+1   2/2       1/2       NOISY
+2   0/2       1/2       NOISY
+3   2/2       2/2       SOLID
+4   2/2       2/2       SOLID
+5   2/2       2/2       SOLID
+6   1/2       2/2       NOISY
+7   1/2       1/2       NOISY
+8   2/2       2/2       SOLID
+
+arm A: [6, 6]  mean 6.00     arm B: [7, 6]  mean 6.50
+SOLID 4   DEAD 0   NOISY 4   SIGNAL 0
+```
+
+**Zero points differ stably between arms. Four of eight flip inside an arm.**
+
+The pre-registered prediction was +1 to +2 for the repaired law. That was
+wrong, but the interesting part is that the *first* pairing came back 6 vs 4 —
+which, reported alone, reads as a clean demonstration that the repaired law
+made things worse. The second pairing came back 6 vs 7, which reads as the
+opposite. Same law, same model, same box, forty minutes apart.
+
+**A single run of this gym supports whichever conclusion the operator was
+hoping for.** That makes it worse than no gym, because it produces confident
+numbers instead of visible ignorance.
+
+This is the third time this repo has been saved by refusing to believe one
+run — after the flash-100 "100/100" that meant only that files appeared, and
+after the q6-beats-q4 expectation that came back negative.
+
+### `sett ab` and the buckets
+
+`sett ab <spec> <n> <lawA> <lawB>` runs the gym n times per arm and records
+one row per point per run, so the analysis can be per-point rather than
+per-total. Totals hide the thing that matters: a gym where every point is a
+coin flip and a gym where six are solid and two are broken print the same
+number and mean opposite things.
+
+Every point lands in one of four buckets:
+
+| bucket | meaning | what it is worth |
+|---|---|---|
+| SOLID | passes in every run of both arms | measures nothing; costs rental time |
+| DEAD | fails in every run of both arms | measures nothing, or is broken |
+| NOISY | flips within an arm | can support no claim at all |
+| SIGNAL | stable within each arm, differs across | the only rows that mean anything |
+
+When SIGNAL is empty the tool refuses to print a verdict. It says how many
+points are NOISY instead, because that number — not the totals — is what
+tells you how many runs the question actually needed.
+
 ## Verdict so far
 
 A 30B-class local model does the work and cannot certify the work.
