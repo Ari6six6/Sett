@@ -177,6 +177,78 @@ corpus where ambiguous references produce genuinely different answers.**
 
 ---
 
+## 2026-07-30 box #3 — the coding gyms (RTX 6000 Ada, 48 GB, ctx 65536)
+
+### code-10 — glm-q4 — **9/10**
+
+Pre-registered before the run: **4–6/10**, with the corpus half named as "the
+wall". Both numbers were wrong, and the reasoning was wrong in a way worth
+keeping.
+
+| # | point | verdict |
+|---|---|---|
+| 1 | dedupe-order | PASS |
+| 2 | merge-intervals | PASS |
+| 3 | flatten-dict | PASS |
+| 4 | retry-backoff | PASS |
+| 5 | kev-count-lib | PASS |
+| 6 | kev-to-csv | PASS |
+| 7 | stix-histogram-lib | PASS |
+| 8 | stix-resolve-refs | PASS |
+| 9 | cli-tool | **FAIL** |
+| 10 | spec-linter | PASS |
+
+**The corpus half went 4/4** — including point 8, resolving `source_ref` and
+`target_ref` across a 25 842-object STIX bundle to list every malware and tool
+an intrusion-set uses.
+
+### Why the prediction was wrong about the mechanism
+
+`analyst-12` scored 10/12 but died where it died because it was asked for a
+**number** and could answer from weights. `code-10` asks for a **program that
+computes the number** — and that turns out to be *easier*, because the artifact
+is executable and a model cannot bluff an exit code. Being forced to write the
+computation is itself a grounding mechanism.
+
+That inverts the intuition this repo was built on. Harder-looking work was
+more reliable, because it was less bluffable.
+
+### The one failure was environmental, not cognitive
+
+Point 9 wanted a bash script printing two counts with an exit-code contract.
+The model:
+
+- got the exit-code contract **right** (rc=2, usage on stderr)
+- reached for `jq`, which is not installed on this box — exit 127
+- assumed KEV was a top-level list; entries live under `"vulnerabilities"`
+
+Both errors are facts about the machine, not gaps in ability — and both are
+exactly the two facts the `guided` brief supplied in the earlier gate-test
+experiment. This is an independent replication of that result, arrived at from
+the opposite direction.
+
+### The law was broken the whole time
+
+All of the above was scored under a `SEAT.md` that told the model to verify
+its work with `probe verify` / `probe sanity` / `probe doctor` at
+`/home/michael/probe/probe` — gone since the merge into `sett`. **Every gym in
+this repo's history ran under a law naming a tool that exits 127.**
+
+9/10 is therefore a floor, not a ceiling: it is the score with the
+self-verification path severed.
+
+### Three defects found, two of them mine
+
+| defect | whose | caught by |
+|---|---|---|
+| `smoke-3` p3 ground truth over a deleted dir — check **inverted** | mine | `gate-c.sh` |
+| `SEAT.md` naming a dead tool | mine | reading it to edit it |
+| `code-sett-8` p2 asserting against a live append-only file | mine | diagnosing a failure |
+| p2: counted every line instead of grouping by id, guessed columns without reading the file | model's | the gym |
+
+The gym's most valuable output today was not a score. It was a list of bugs in
+the operator's own instructions.
+
 ## Verdict so far
 
 A 30B-class local model does the work and cannot certify the work.
@@ -188,10 +260,13 @@ The middle row rents for pennies.
 ## Reproducing
 
 ```sh
-probe sanity <spec>    # prove the checks are real before trusting the score
-probe run <spec> --model <provider/model>
-probe verify <spec>    # re-check every artifact, read-only, no model
+sett gate <spec>            # gate A: prove the checks fail with no artifact
+sett gate <spec> --wrong    # gate C: prove they fail on a WRONG artifact
+sett rot                    # prove nothing the repo asserts has moved
+sett gym <spec> --model <provider/model>
+sett check <spec>           # re-check every artifact, read-only, no model
+sett ab <spec> <n> <A> <B>  # n runs per arm before believing a difference
 ```
 
-`probe sanity` was run on every spec before any model saw it:
+`sett gate` was run on every spec before any model saw it:
 `smoke-3` 3/3 real, `analyst-12` 12/12 real, `flash-100-core` 23/23 real.

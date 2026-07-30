@@ -86,5 +86,40 @@ if [ -n "$hits" ]; then
   exit 1
 fi
 
-say "clean: every asserted path exists  ($total distinct, $(grep -cvE '^#|^$' rot.ignore 2>/dev/null || echo 0) allowlisted in rot.ignore)"
+
+# --- commands, not just paths -------------------------------------------
+# RESULTS.md carried `probe sanity` / `probe run` / `probe verify` in its
+# "Reproducing" section long after probe stopped existing. No path audit could
+# see it: those are command names. A doc that tells you to run a verb that
+# does not exist is rot in exactly the same way a dead path is.
+verbs="$(sed -n '/^case "${1:-}" in/,/^esac/p' sett | grep -oE '^\s+[a-z|"-]+\)' | tr -d ' )' | tr '|' '\n' | tr -d '"' | grep -vE '^\*?$|^-')"
+badcmd=0
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  f="${line%%:*}"; v="${line#*:}"
+  printf '%s\n' "$verbs" | grep -qxF "$v" && continue
+  say "  $f"
+  say "      sett $v   — not a verb"
+  badcmd=$((badcmd+1))
+done < <(
+  # Only CODE contexts: inline `sett verb` spans and lines inside ```sh
+  # fences. Prose says things like "SETT is one program" and that is not a
+  # command; reading it as one is how an audit earns a reputation for crying
+  # wolf, which is how audits get ignored.
+  for f in SEAT.md README.md RESULTS.md; do
+    [ -f "$f" ] || continue
+    grep -oE '`sett [a-z-]+' "$f" | sed 's/`//' | awk -v f="$f" '{print f ":" $2}'
+    # only ```sh fences — README also has a plain fence listing the repo's
+    # files, where the line "sett   the program." is a description, not a call
+    awk '/^```sh/{c=1; next} /^```/{c=0; next} c && /^sett /{print FILENAME ":" $2}' "$f"
+  done | sort -u
+)
+
+if [ "$badcmd" -gt 0 ]; then
+  say
+  say "rot: $badcmd command(s) named in docs are not verbs of sett"
+  exit 1
+fi
+
+say "clean: every asserted path exists and every documented verb resolves  ($total paths, $(grep -cvE '^#|^$' rot.ignore 2>/dev/null || echo 0) allowlisted in rot.ignore)"
 exit 0
