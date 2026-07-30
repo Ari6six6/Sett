@@ -13,7 +13,7 @@ Everything below is real output from one afternoon on this box, 2026-07-30.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Ari6six6/KM/main/setup.sh | bash -s -- \
-    --gpu "-p 46023 root@219.122.229.5 -L 8080:localhost:8080" --model glm-q4
+    --gpu "-p <port> root@<box-ip> -L 8080:localhost:8080" --model glm-q4
 ```
 
 That's it. That is the whole install. Rent anything with a GPU on vast.ai,
