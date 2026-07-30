@@ -371,6 +371,24 @@ clean, and **not yet re-run.** It is an untested fix and is labelled as one.
 
 Four of six rows describe defects in the instructions, not the model.
 
+### Caveat on the historical gyms
+
+`sett lint` finds unnamed inputs in **analyst-12 (7 points)** and
+**flash-100-core (12 points)**: the `do:` describes the corpus in prose — "the
+KEV catalog" — without naming a path, while the check reads a specific file.
+
+Every point runs as a fresh `pi` process seeing only its own `do:` line. So on
+those points the model was not handed its input; **it went hunting the
+filesystem for it.** analyst-12's 10/12 and flash-100-core's audited 23/23
+were achieved under that condition and partly measure the model's willingness
+to search, not only its ability to compute.
+
+**Those specs are deliberately not being fixed.** Editing them would silently
+invalidate every number already published against them, and rewriting the
+ruler after the measurement is the exact failure this document exists to
+prevent. They stand as the historical record they are, with this caveat
+attached. New gyms name their inputs.
+
 ## Verdict so far
 
 A 30B-class local model does the work and cannot certify the work.

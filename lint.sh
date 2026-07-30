@@ -60,7 +60,8 @@ for b in blocks:
     # NOT a defect when the path is a PARAMETER the check supplies: the model
     # is handed it at call time and never needs to know where it lives.
     # e.g. "defining ransomware_count(path) which loads the KEV JSON at `path`"
-    if re.search(r'\(\s*path\b|\bat `path`|\bpath is a str', do):
+    if re.search(r'\(\s*path\b|\bat `path`|\bpath is a str'
+                 r'|taking one argument|takes? (a|one) (path|argument)', do):
         continue
     missing=sorted(p for p in cpaths if not any(p in d or d in p for d in dpaths))
     if missing:

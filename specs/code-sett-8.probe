@@ -14,7 +14,7 @@
 #   vault       "<sha256>  <path>" per line
 
 ## 1 state-latest
-do:    Write a Python file $OUT/1.py defining latest(path), where path is a str filesystem path, which reads a SETT state.tsv — tab-separated columns timestamp, id, verdict, note — and returns a dict mapping each id to its LAST verdict in file order. Later lines override earlier ones for the same id.
+do:    Write a Python file $OUT/1.py defining latest(path), where path is a str filesystem path, which reads a SETT state.tsv — tab-separated columns timestamp, id, verdict, note — and returns a dict mapping each id to its LAST verdict in file order. Later lines override earlier ones for the same id. An empty file returns an empty dict.
 check: python3 -c 'import importlib.util,os,tempfile,pathlib;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/1.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);p=tempfile.mktemp();pathlib.Path(p).write_text("t1\t1\tFAIL\tx\nt2\t2\tPASS\t\nt3\t1\tPASS\t\n");r=m.latest(p);assert r=={"1":"PASS","2":"PASS"}, r;q=tempfile.mktemp();pathlib.Path(q).write_text("");assert m.latest(q)=={}'
 
 ## 2 state-summary
