@@ -307,6 +307,70 @@ When SIGNAL is empty the tool refuses to print a verdict. It says how many
 points are NOISY instead, because that number — not the totals — is what
 tells you how many runs the question actually needed.
 
+### The night run — n=3 on both gyms, answer key out of reach
+
+`sett leak` on the whole batch: **clean.** No run read its own spec.
+
+#### code-10 — glm-q4 — runs **8, 8, 9** — mean **8.33**
+
+| id | point | pass/3 | |
+|---|---|---|---|
+| 1 | dedupe-order | 3/3 | SOLID |
+| 2 | merge-intervals | 3/3 | SOLID |
+| 3 | flatten-dict | 3/3 | SOLID |
+| 4 | retry-backoff | 3/3 | SOLID |
+| 5 | kev-count-lib | 3/3 | SOLID |
+| 6 | kev-to-csv | 3/3 | SOLID |
+| 7 | stix-histogram-lib | 3/3 | SOLID |
+| 8 | stix-resolve-refs | 2/3 | NOISY |
+| 9 | cli-tool | 1/3 | NOISY |
+| 10 | spec-linter | 1/3 | NOISY |
+
+**The 9/10 published earlier today was the best of three, not the typical
+one.** The honest figure is 8–9, mean 8.33. That is a 0.67-point
+overstatement drawn from a single sample — small, and precisely the error
+this repo exists to prevent. It is corrected here rather than quietly
+restated.
+
+What survives is larger than what was retracted: **points 1–7 pass 3/3.**
+Seven tasks reliably solved, three of them computing over real corpora on
+disk — 1 655 CISA KEV entries and a 25 842-object STIX bundle. That is a
+capability, not an afternoon.
+
+The frontier is honest and narrow: multi-hop relationship resolution passes
+most of the time (2/3); the `jq` point still fails two runs in three even
+with the missing binary named in the law, so that fact alone was not the
+cure; and the spec-linter had been passing when it could read its own spec.
+
+#### code-sett-8 — leak closed — runs **5, 6, 7** — mean **6.00**
+
+| 1 | 2/3 | 2 | **0/3** | 3 | 2/3 | 4 | **3/3** |
+|---|---|---|---|---|---|---|---|
+| 5 | 3/3 | 6 | 3/3 | 7 | 2/3 | 8 | 3/3 |
+
+**Point 4 moved 0/3 → 3/3.** The only change was the leak fix: the `do:`
+stopped saying "reads a SETT .probe spec" and started naming the exact frozen
+file. On that point ambiguity was not adding noise, it *was* the failure.
+
+**Point 2 scored 0/3 in every configuration tried.** Its `do:` never stated
+the column layout that point 1's states outright, so the model alternated
+between a correct algorithm with wrong column indices and correct indices
+with no grouping. Fixed after the box came down — stated, re-gated A/B/C
+clean, and **not yet re-run.** It is an untested fix and is labelled as one.
+
+### What the day established
+
+| claim | verdict |
+|---|---|
+| a 30B writes working code against real corpora | **yes** — 7 points 3/3 at n=3 |
+| ...including multi-hop graph traversal | mostly — 2/3 |
+| the 9/10 headline | **overstated** — 8–9, mean 8.33 |
+| the repaired law helps | **not established** — no point differed stably |
+| de-ambiguation reduces noise | **yes** — NOISY 4→2; one point 0/3→3/3 |
+| the model exploited the answer key | **no** — but it could have, and now cannot |
+
+Four of six rows describe defects in the instructions, not the model.
+
 ## Verdict so far
 
 A 30B-class local model does the work and cannot certify the work.

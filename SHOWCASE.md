@@ -180,9 +180,13 @@ run: 9 PASS  1 FAIL  0 ERROR  (0 already passing, 10 points)
 ```
 
 A 30-billion-parameter model, on a card you rented by the hour, wrote working
-code against 25 842 real STIX objects and 1 655 real CISA KEV entries. Point 8
-resolved `source_ref`/`target_ref` across the whole bundle. First attempt. No
-retries.
+code against 25 842 real STIX objects and 1 655 real CISA KEV entries. First
+attempt. No retries.
+
+**That was one run. Run it three times and it scores 8, 8, 9** — points 1
+through 7 pass every time, points 8, 9 and 10 are the frontier. The honest
+number is 8.33, and the only reason this document can tell you that is that
+the tool below refuses to let one run stand as a result.
 
 Fresh process per point. No long horizon to lose, nothing to forget, no
 context to poison.
