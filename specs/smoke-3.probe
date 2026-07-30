@@ -1,5 +1,5 @@
 # spec: smoke-3
-# out:  /home/michael/probe/out/smoke-3
+# out:  /home/michael/SETT-repo/out/smoke-3
 #
 # The harness-proof gym. Three points a Flash-class model should never miss.
 # Runs entirely offline against local files. If this is not green, the problem

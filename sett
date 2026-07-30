@@ -1,0 +1,530 @@
+#!/usr/bin/env bash
+# sett — the apparatus for not believing the model.
+#
+# Doctrine (paid for in KM scars):
+#   - A POINT is the unit of work: one bounded instruction, one out path, one check.
+#   - The check is BASH, not a model. The second mouth cannot be sweet-talked.
+#   - The model NEVER sees the check. It cannot teach to the test.
+#   - One fresh process per point. No long horizon to lose.
+#   - No SKIP. PASS or it didn't happen.
+#
+# bash + coreutils only. Does not fork pi; calls it.
+set -euo pipefail
+
+# resolve symlinks: `sett` is on PATH via ~/.local/bin, and SETT_ROOT must
+# point at the real repo, not at the symlink's directory.
+SETT_ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+SPECS="$SETT_ROOT/specs"
+RUNS="$SETT_ROOT/runs"
+
+SETT_TMP=""
+BASE_URL="${SETT_BASE_URL:-http://localhost:8080}"
+MODEL="${SETT_MODEL:-}"
+POINT_TIMEOUT="${SETT_TIMEOUT:-300}"
+CHECK_TIMEOUT="${SETT_CHECK_TIMEOUT:-60}"
+
+die() { echo "sett: $*" >&2; exit 2; }
+now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+# ---------------------------------------------------------------- spec parsing
+# Spec format (hand-writable, greppable):
+#
+#   # spec: <name>
+#   # out:  <absolute dir>
+#   # bar:  <int>            (optional; default = number of points)
+#
+#   ## <id> <slug>
+#   do:    <instruction the model sees; $OUT is expanded>
+#   check: <bash; exits 0 = PASS; $OUT is exported>
+#
+# do:/check: continue across lines until the next key or the next '## '.
+
+spec_path() {
+  local s="$1"
+  [ -f "$s" ] && { echo "$s"; return; }
+  [ -f "$SPECS/$s" ] && { echo "$SPECS/$s"; return; }
+  [ -f "$SPECS/$s.probe" ] && { echo "$SPECS/$s.probe"; return; }
+  die "no such spec: $s"
+}
+
+spec_header() { # spec_header <file> <key>
+  sed -n "s/^#[[:space:]]*$2:[[:space:]]*//p" "$1" | head -1
+}
+
+# Emits one TSV line per point: id \t slug \t do \t check   (fields \n-escaped)
+parse_spec() {
+  local f="$1"
+  awk '
+    function flush() {
+      if (id != "") {
+        gsub(/\t/, " ", d); gsub(/\t/, " ", c)
+        printf "%s\t%s\t%s\t%s\n", id, slug, d, c
+      }
+      id=""; slug=""; d=""; c=""; key=""
+    }
+    /^##[[:space:]]/ {
+      flush()
+      line=$0; sub(/^##[[:space:]]+/, "", line)
+      n=split(line, parts, /[[:space:]]+/)
+      id=parts[1]; slug=""
+      for (i=2; i<=n; i++) slug = slug (i>2 ? " " : "") parts[i]
+      next
+    }
+    /^do:/    { key="do";    v=$0; sub(/^do:[[:space:]]*/, "", v);    d = v; next }
+    /^check:/ { key="check"; v=$0; sub(/^check:[[:space:]]*/, "", v); c = v; next }
+    /^[[:space:]]*$/ { key=""; next }
+    /^#/ { next }
+    {
+      if (key == "do")    d = d "\\n" $0
+      else if (key == "check") c = c "\\n" $0
+    }
+    END { flush() }
+  ' "$f"
+}
+
+unesc() { printf '%b' "$1"; }
+
+# ------------------------------------------------------------------- run state
+# state.tsv is append-only. Latest line for an id wins.
+state_file() { echo "$RUNS/$1/state.tsv"; }
+
+verdict_of() { # verdict_of <statefile> <id>
+  [ -f "$1" ] || return 0
+  awk -F'\t' -v id="$2" '$2==id {v=$3} END {print v}' "$1"
+}
+
+record() { # record <statefile> <id> <verdict> <note>
+  printf '%s\t%s\t%s\t%s\n' "$(now)" "$2" "$3" "${4//$'\t'/ }" >> "$1"
+}
+
+# --------------------------------------------------------------- check running
+# Runs a check with OUT bound. Returns the check's exit code.
+run_check() { # run_check <check> <outdir>
+  local check="$1" out="$2"
+  OUT="$out" timeout "$CHECK_TIMEOUT" bash -c "$check" >/dev/null 2>&1
+}
+
+# ------------------------------------------------------------------ safety net
+assert_out_writable() { # refuse to let a run scribble outside the repo unless told
+  local out="$1"
+  case "$out" in
+    "$SETT_ROOT"/*) return 0 ;;
+  esac
+  [ "${ALLOW_OUT:-0}" = "1" ] || die "out dir '$out' is outside $SETT_ROOT.
+  'sett gym' will not write there. Use 'sett check' (read-only) to audit
+  existing artifacts, or re-run with ALLOW_OUT=1 if you really mean it."
+}
+
+# ----------------------------------------------------------------- verb: newx
+cmd_new() {
+  local name="${1:-}"; [ -n "$name" ] || die "usage: sett new <name>"
+  local f="$SPECS/$name.probe"
+  [ -e "$f" ] && die "exists: $f"
+  local out="$SETT_ROOT/out/$name"
+  cat > "$f" <<EOF
+# spec: $name
+# out:  $out
+
+## 1 harness-proof
+do:    Write exactly the word READY (nothing else) to \$OUT/1.txt
+check: test "\$(tr -d '[:space:]' < "\$OUT/1.txt")" = "READY"
+EOF
+  echo "$f"
+}
+
+# ------------------------------------------------------------------ verb: run
+cmd_run() {
+  local spec="" only="" from="" retry=0 law=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --only)  only="$2"; shift 2 ;;
+      --from)  from="$2"; shift 2 ;;
+      --retry) retry=1; shift ;;
+      --model) MODEL="$2"; shift 2 ;;
+      --law)   law="$2"; shift 2 ;;
+      -*) die "unknown flag: $1" ;;
+      *) spec="$1"; shift ;;
+    esac
+  done
+  [ -n "$spec" ] || die "usage: sett gym <spec> [--only ID] [--from ID] [--retry] [--model M]"
+
+  local f name out bar
+  f="$(spec_path "$spec")"
+  name="$(spec_header "$f" spec)"; [ -n "$name" ] || die "spec has no '# spec:' header"
+  out="$(spec_header "$f" out)";   [ -n "$out" ]  || die "spec has no '# out:' header"
+  assert_out_writable "$out"
+
+  command -v pi >/dev/null 2>&1 || die "pi not on PATH"
+  [ -n "$MODEL" ] || die "no model. Set SETT_MODEL or pass --model (e.g. km-box/qwen3.6-27b-fable)"
+
+  mkdir -p "$out" "$RUNS/$name"
+  local sf; sf="$(state_file "$name")"; : >> "$sf"
+
+  local total=0 pass=0 fail=0 err=0 skipped=0
+  while IFS=$'\t' read -r id slug d c; do
+    [ -n "$id" ] || continue
+    total=$((total+1))
+    [ -n "$only" ] && [ "$id" != "$only" ] && continue
+    [ -n "$from" ] && [ "$id" -lt "$from" ] 2>/dev/null && continue
+
+    local prev; prev="$(verdict_of "$sf" "$id")"
+    if [ "$prev" = "PASS" ] && [ "$retry" -eq 0 ]; then
+      skipped=$((skipped+1)); continue
+    fi
+
+    local task check
+    task="$(unesc "$d")"; check="$(unesc "$c")"
+    task="${task//\$OUT/$out}"
+
+    printf '%-5s %-28s ' "$id" "${slug:0:28}"
+
+    # One fresh process. Bounded task. The check is NOT in the prompt.
+    local rc=0
+    # stdin from /dev/null: pi would otherwise eat the loop's spec stream
+    local -a piargs=(-p "$task" --model "$MODEL")
+    [ -n "$law" ] && piargs+=(--append-system-prompt "$law")
+    ( cd "$out" && timeout "$POINT_TIMEOUT" pi "${piargs[@]}" ) \
+      < /dev/null > "$RUNS/$name/$id.log" 2>&1 || rc=$?
+
+    if [ "$rc" -ne 0 ]; then
+      record "$sf" "$id" ERROR "pi exit $rc"
+      echo "ERROR (pi exit $rc)"; err=$((err+1)); continue
+    fi
+
+    if run_check "$check" "$out"; then
+      record "$sf" "$id" PASS ""
+      echo "PASS"; pass=$((pass+1))
+    else
+      record "$sf" "$id" FAIL "check nonzero"
+      echo "FAIL"; fail=$((fail+1))
+    fi
+  done < <(parse_spec "$f")
+
+  echo
+  echo "run: $pass PASS  $fail FAIL  $err ERROR  ($skipped already passing, $total points)"
+  cmd_report "$spec" >/dev/null
+}
+
+# --------------------------------------------------------------- verb: verify
+# Read-only. Re-runs every check against artifacts already on disk. No model.
+# This is the verb that turns a hand audit into a mechanical one.
+cmd_verify() {
+  local spec="${1:-}"; [ -n "$spec" ] || die "usage: sett check <spec>"
+  local f name out
+  f="$(spec_path "$spec")"
+  name="$(spec_header "$f" spec)"
+  out="$(spec_header "$f" out)"
+  [ -d "$out" ] || die "out dir does not exist: $out"
+
+  local total=0 pass=0 fail=0
+  while IFS=$'\t' read -r id slug d c; do
+    [ -n "$id" ] || continue
+    total=$((total+1))
+    printf '%-5s %-28s ' "$id" "${slug:0:28}"
+    if run_check "$(unesc "$c")" "$out"; then
+      echo "PASS"; pass=$((pass+1))
+    else
+      echo "FAIL"; fail=$((fail+1))
+    fi
+  done < <(parse_spec "$f")
+
+  echo
+  echo "verify: $pass/$total PASS  $fail FAIL   (read-only, no model, out=$out)"
+  [ "$fail" -eq 0 ]
+}
+
+# --------------------------------------------------------------- verb: sanity
+# Mutation test for the CHECKS themselves. Runs each check against an EMPTY
+# out dir. A real check must FAIL when the artifact is absent. A check that
+# still passes is a fake gate — the exact bug that made flash-100's "DONE"
+# mean only "a file appeared". Touches no real data: OUT is a temp dir.
+cmd_sanity() {
+  local spec="${1:-}"; [ -n "$spec" ] || die "usage: sett gate <spec>"
+  local f; f="$(spec_path "$spec")"
+
+  local tmp; tmp="$(mktemp -d)"
+  SETT_TMP="$tmp"
+  trap 'rm -rf "${SETT_TMP:-}"' EXIT
+
+  local total=0 good=0 fake=0
+  while IFS=$'\t' read -r id slug d c; do
+    [ -n "$id" ] || continue
+    total=$((total+1))
+    printf '%-5s %-28s ' "$id" "${slug:0:28}"
+    if run_check "$(unesc "$c")" "$tmp"; then
+      echo "FAKE CHECK (passes with no artifact)"; fake=$((fake+1))
+    else
+      echo "ok (fails without artifact)"; good=$((good+1))
+    fi
+  done < <(parse_spec "$f")
+
+  echo
+  echo "sanity: $good/$total checks are real, $fake FAKE"
+  [ "$fake" -eq 0 ]
+}
+
+# --------------------------------------------------------------- verb: status
+cmd_status() {
+  local spec="${1:-}"; [ -n "$spec" ] || die "usage: sett status <spec>"
+  local f name sf
+  f="$(spec_path "$spec")"; name="$(spec_header "$f" spec)"
+  sf="$(state_file "$name")"
+  [ -f "$sf" ] || { echo "no runs yet for $name"; return 0; }
+  local total pass
+  total="$(parse_spec "$f" | wc -l)"
+  pass="$(awk -F'\t' '{v[$2]=$3} END {n=0; for (k in v) if (v[k]=="PASS") n++; print n}' "$sf")"
+  echo "$name: $pass/$total PASS"
+  awk -F'\t' '{v[$2]=$3} END {for (k in v) if (v[k]!="PASS") print "  pending/failed: " k " (" v[k] ")"}' "$sf" | sort -V
+}
+
+# --------------------------------------------------------------- verb: report
+cmd_report() {
+  local spec="${1:-}"; [ -n "$spec" ] || die "usage: sett report <spec>"
+  local f name sf out rf
+  f="$(spec_path "$spec")"; name="$(spec_header "$f" spec)"
+  out="$(spec_header "$f" out)"
+  sf="$(state_file "$name")"
+  mkdir -p "$RUNS/$name"
+  rf="$RUNS/$name/REPORT.md"
+
+  local total; total="$(parse_spec "$f" | wc -l)"
+  {
+    echo "# sett report — $name"
+    echo
+    echo "- generated: $(now)"
+    echo "- spec: \`$f\`"
+    echo "- out: \`$out\`"
+    echo "- model: \`${MODEL:-unset}\`"
+    echo "- points: $total"
+    echo
+    echo "| id | slug | verdict |"
+    echo "|---|---|---|"
+    while IFS=$'\t' read -r id slug d c; do
+      [ -n "$id" ] || continue
+      local v; v="$(verdict_of "$sf" "$id")"
+      echo "| $id | ${slug:-—} | ${v:-PENDING} |"
+    done < <(parse_spec "$f")
+  } > "$rf"
+  echo "$rf"
+}
+
+# --------------------------------------------------------------- verb: doctor
+# Truth comes from the live endpoint, never from a file. Retires the pin-drift
+# scar: everything downstream is derived from what is actually served.
+cmd_doctor() {
+  local base="$BASE_URL"
+  echo "== endpoint =="
+  local served="" ids=""
+  if ids="$(curl -s --max-time 5 "$base/v1/models" 2>/dev/null)" && [ -n "$ids" ]; then
+    served="$(printf '%s' "$ids" | grep -o '"id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')"
+  fi
+  if [ -n "$served" ]; then
+    echo "  LIVE   $base serves: $served"
+  else
+    echo "  DOWN   $base answers nothing"
+  fi
+
+  echo "== files that claim otherwise =="
+  local drift=0
+  local sj="$HOME/.km/state.json"
+  if [ -f "$sj" ]; then
+    local sj_model sj_served
+    sj_model="$(grep -o '"model"[[:space:]]*:[[:space:]]*"[^"]*"' "$sj" | head -1 | sed 's/.*"\([^"]*\)"$/\1/')"
+    sj_served="$(grep -o '"served"[[:space:]]*:[[:space:]]*[a-z]*' "$sj" | head -1 | awk '{print $NF}')"
+    if [ -z "$served" ] && [ "$sj_served" = "true" ]; then
+      echo "  DRIFT  $sj says served:true but endpoint is DOWN  (DEMO-law violation)"; drift=1
+    elif [ -n "$served" ] && [ "$sj_model" != "$served" ]; then
+      echo "  DRIFT  $sj model=$sj_model  != served=$served"; drift=1
+    else
+      echo "  ok     $sj"
+    fi
+  fi
+  local am="$HOME/.km/agent-model"
+  if [ -f "$am" ]; then
+    local pin; pin="$(tr -d '[:space:]' < "$am")"
+    if [ -n "$served" ] && [ "$pin" != "km-box/$served" ]; then
+      echo "  DRIFT  $am = $pin  != km-box/$served"; drift=1
+    elif [ -z "$served" ]; then
+      echo "  stale? $am = $pin  (endpoint down, cannot confirm)"
+    else
+      echo "  ok     $am"
+    fi
+  fi
+  local mj="$HOME/.pi/agent/models.json"
+  if [ -f "$mj" ]; then
+    if [ -n "$served" ] && ! grep -q "\"$served\"" "$mj"; then
+      echo "  DRIFT  $mj has no '$served' — pi will refuse the model"; drift=1
+    else
+      echo "  ok     $mj"
+    fi
+  fi
+  local hj="$HOME/.km/herald.json"
+  if [ -f "$hj" ]; then
+    local seat; seat="$(grep -o '"seat"[[:space:]]*:[[:space:]]*"[^"]*"' "$hj" | head -1 | sed 's/.*"\([^"]*\)"$/\1/')"
+    if [ -n "$served" ] && [ -n "$seat" ] && [ "$seat" != "km-box/$served" ]; then
+      echo "  DRIFT  $hj seat=$seat  != km-box/$served"; drift=1
+    else
+      echo "  ok     $hj seat=${seat:-unset}"
+    fi
+  fi
+
+  if [ "$drift" = "1" ]; then
+    echo
+    echo "fix (only when the endpoint is LIVE):  sett doctor --fix"
+  fi
+
+  if [ "${1:-}" = "--fix" ]; then
+    [ -n "$served" ] || die "refusing to sync pins to a dead endpoint. Birth a box first."
+    echo "km-box/$served" > "$HOME/.km/agent-model"
+    echo "  wrote $HOME/.km/agent-model = km-box/$served"
+    echo "  now run: herald --seat km-box/$served"
+  fi
+}
+
+# ---------------------------------------------------------------- verb: vault
+# Gold preservation. Hash every artifact that matters so "nothing was lost"
+# becomes a checkable claim instead of a feeling. Never deletes, never moves.
+cmd_vault() {
+  local sub="${1:-}"; shift || true
+  case "$sub" in
+    seal)
+      local name="${1:-gold}"; shift || true
+      [ $# -gt 0 ] || die "usage: sett vault seal <name> <paths...>"
+      local vf="$SETT_ROOT/vault/$name.sha256"
+      local mf="$SETT_ROOT/vault/$name.manifest"
+      : > "$vf"; : > "$mf"
+      local p
+      for p in "$@"; do
+        [ -e "$p" ] || { echo "  MISSING $p" >&2; continue; }
+        echo "$p" >> "$mf"
+        find "$p" -type f -print0 2>/dev/null | sort -z | xargs -0 -r sha256sum >> "$vf"
+      done
+      echo "sealed $(wc -l < "$vf") files from $(wc -l < "$mf") roots"
+      echo "  $vf"
+      ;;
+    check)
+      local name="${1:-gold}"
+      local vf="$SETT_ROOT/vault/$name.sha256"
+      [ -f "$vf" ] || die "no vault: $vf"
+      echo "checking $(wc -l < "$vf") files..."
+      if sha256sum -c --quiet "$vf" 2>/dev/null; then
+        echo "vault $name: INTACT — nothing lost, nothing altered"
+      else
+        echo "vault $name: CHANGED (see above)"; return 1
+      fi
+      ;;
+    *) die "usage: sett vault seal <name> <paths...> | sett vault check <name>" ;;
+  esac
+}
+
+# ============================================================== the body verbs
+# birth / do / status / kill. These wrap the GPU organ and pi. They do NOT
+# implement an agent loop — `do` is one exec of pi and nothing more. The day a
+# `while` appears around a model turn in this file, it has become a harness.
+
+SEAT="$SETT_ROOT/SEAT.md"
+
+served_model() {
+  local j
+  j="$(curl -s --max-time 5 "$BASE_URL/v1/models" 2>/dev/null)" || return 1
+  [ -n "$j" ] || return 1
+  printf '%s' "$j" | grep -o '"id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4
+}
+
+require_body() {
+  local m
+  if m="$(served_model)" && [ -n "$m" ]; then echo "$m"; return 0; fi
+  cat >&2 <<EOF
+sett: the body is DOWN — $BASE_URL serves nothing.
+
+  sett birth "-p <port> root@<ip> -L 8080:localhost:8080"
+
+Nothing here will pretend otherwise.
+EOF
+  exit 3
+}
+
+cmd_birth() {
+  [ $# -gt 0 ] || die 'usage: sett birth "-p <port> root@<ip> -L 8080:localhost:8080" [--model glm-q4]'
+  local ssh_str="$1"; shift
+  command -v km >/dev/null 2>&1 || die "km not on PATH — the GPU organ is required for birth"
+  if [ $# -gt 0 ]; then km --gpu "$ssh_str" "$@"; else km --gpu "$ssh_str" --model glm-q4; fi
+  echo
+  cmd_doctor --fix || true
+}
+
+cmd_do() {
+  [ $# -gt 0 ] || die 'usage: sett do "<task>"'
+  local m; m="$(require_body)"
+  echo "seat: km-box/$m   law: $SEAT" >&2
+  # ONE exec of pi. No loop. This is the line that keeps sett from being a harness.
+  exec pi -p "$*" --model "km-box/$m" --append-system-prompt "$SEAT"
+}
+
+cmd_body() {
+  local m
+  if m="$(served_model)" && [ -n "$m" ]; then
+    echo "LIVE   $BASE_URL   serving: $m"
+  else
+    echo "DOWN   $BASE_URL   serving: nothing"
+  fi
+  echo
+  cmd_doctor
+}
+
+cmd_kill() {
+  command -v km >/dev/null 2>&1 || die "km not on PATH"
+  km --down
+}
+
+cmd_score() {
+  local rf="$SETT_ROOT/RESULTS.md"
+  [ -f "$rf" ] && cat "$rf" || echo "no RESULTS.md yet"
+}
+
+# ------------------------------------------------------------------------ main
+usage() {
+  cat <<'EOF'
+sett — the brain proposes, the captain disposes, the ledger makes faith obsolete.
+
+  the body
+    sett birth "<ssh string>" [--model glm-q4]   rent + provision + wire
+    sett body                    what is ACTUALLY served (live endpoint)
+    sett do "<task>"             one bounded task, under SEAT.md
+    sett kill                    stop paying
+
+  the ledger
+    sett gym <spec> [flags]      run pending points (fresh process each)
+        --only ID  --from ID  --retry  --model M  --law FILE
+    sett check <spec>            re-run every check, read-only, no model
+    sett gate <spec>             mutation-test the CHECKS (catches fake gates)
+    sett status <spec>           what passed, what's pending
+    sett report <spec>           write REPORT.md
+    sett score                   the results table
+    sett new <name>              scaffold a spec
+    sett doctor [--fix]          endpoint is truth; find & fix pin drift
+    sett vault seal|check <name> prove nothing was lost
+
+env: SETT_MODEL  SETT_TIMEOUT(300)  SETT_CHECK_TIMEOUT(60)  SETT_BASE_URL
+EOF
+}
+
+case "${1:-}" in
+  birth)   shift; cmd_birth "$@" ;;
+  do)      shift; cmd_do "$@" ;;
+  body)    shift; cmd_body "$@" ;;
+  kill)    shift; cmd_kill "$@" ;;
+  gym)     shift; [ $# -gt 0 ] || die "usage: sett gym <spec>"
+           if [ -z "$MODEL" ]; then m="$(require_body)"; MODEL="km-box/$m"; fi
+           cmd_run "$@" --model "$MODEL" ;;
+  check)   shift; cmd_verify "$@" ;;
+  gate)    shift; cmd_sanity "$@" ;;
+  score)   shift; cmd_score "$@" ;;
+  new)     shift; cmd_new "$@" ;;
+  status)  shift; cmd_status "$@" ;;
+  report)  shift; cmd_report "$@" ;;
+  doctor)  shift; cmd_doctor "$@" ;;
+  vault)   shift; cmd_vault "$@" ;;
+  ""|-h|--help|help) usage ;;
+  *) die "unknown verb: $1 (try 'sett help')" ;;
+esac

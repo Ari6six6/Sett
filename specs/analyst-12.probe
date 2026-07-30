@@ -1,5 +1,5 @@
 # spec: analyst-12
-# out:  /home/michael/probe/out/analyst-12
+# out:  /home/michael/SETT-repo/out/analyst-12
 #
 # Tier 2 gym: multi-step analyst work. Every point requires reading a corpus,
 # filtering or joining, and reducing to one exact value. Three points join

@@ -47,21 +47,45 @@ model being asked to do the top or the bottom row.
 
 ## The rule
 
-**SETT contains no program.**
+**SETT never implements the agent loop.**
 
-No installer. No framework. No agent loop. No harness. The runner already
-exists, it is 437 lines of bash, and it is finished.
+It calls `pi`. `sett do` is one `exec` of `pi` and nothing more. The day a
+`while` loop appears around a model turn in `sett`, this has become the
+sixteenth harness and the loop has won.
 
-This repository holds only:
+That is the only prohibition. Everything else may be built.
+
+Fifteen repositories died of writing the agent loop — the free layer, the one
+that improves without me. Nothing died of writing an instrument.
 
 ```
+sett        the program. one file, ~530 lines of bash.
 specs/      gyms. one bounded task, one artifact path, one machine check.
 corpus/     manifests for the data the checks grip on.
 RESULTS.md  model x gym x score.
+SEAT.md     the law a task runs under.
 ```
 
-If SETT ever acquires a `setup.sh`, it has become the sixteenth harness and the
-loop has won.
+## The verbs
+
+```sh
+# the body
+sett birth "-p 32130 root@1.2.3.4 -L 8080:localhost:8080"   # rent, provision, wire
+sett body                    # what is ACTUALLY served — the live endpoint, never a file
+sett do "count the KEV ransomware entries"                  # one bounded task
+sett kill                    # stop paying
+
+# the ledger
+sett gym analyst-12          # put a model through a gym
+sett gate analyst-12         # are the checks real? mutation-test them first
+sett check analyst-12        # re-verify every artifact, read-only, no model
+sett score                   # the table
+sett vault check gold        # prove nothing was lost
+```
+
+`sett body` reads the model from the live endpoint on every invocation. There
+is no pin file to drift. A dead endpoint makes `sett do` exit 3 and say so —
+it will not quietly fall back to a cloud model and let you think otherwise.
 
 ## Why this and not a harness
 
