@@ -1,0 +1,49 @@
+# spec: schiller-grounded-8
+# out:  /home/michael/SETT-repo/out/schiller-grounded-8
+#
+# GROUNDED arm of the grounding experiment. Paired with schiller-ungrounded-8,
+# which has byte-identical checks and differs ONLY in whether the `do:` names
+# the corpus path.
+#
+# Why this corpus and not the STIX pair: grounding can only be measured in a
+# domain where the model has confident priors to fall back on. It cannot know
+# KEV counts, so there is nothing to hallucinate. It does know Die Raeuber —
+# which is exactly why the Amalia scar happened on 2026-07-30.
+#
+# Every answer here is corpus-specific. The corpus lists SIX characters; the
+# play has far more. `fetched_at` is unknowable without opening the file.
+#
+# Corpus: karte/parkour/out/01-karl-moor-characters.json
+#         karte/parkour/out/02-die-raeuber-plot.json
+
+## 1 character-count
+do:    Count the entries in the "characters" array of /home/michael/karte/parkour/out/01-karl-moor-characters.json and write only that number to $OUT/1.txt
+check: test "$(tr -d '[:space:]' < "$OUT/1.txt")" = "6"
+
+## 2 fetched-at
+do:    Write the exact value of the "fetched_at" field of /home/michael/karte/parkour/out/01-karl-moor-characters.json to $OUT/2.txt
+check: test "$(tr -d '[:space:]' < "$OUT/2.txt")" = "2026-07-28T11:18:54Z"
+
+## 3 act-count
+do:    Count the entries in the "acts" array of /home/michael/karte/parkour/out/02-die-raeuber-plot.json and write only that number to $OUT/3.txt
+check: test "$(tr -d '[:space:]' < "$OUT/3.txt")" = "5"
+
+## 4 total-scenes
+do:    Across every act in /home/michael/karte/parkour/out/02-die-raeuber-plot.json, count all entries in every "scenes" array. Write only the total to $OUT/4.txt
+check: test "$(tr -d '[:space:]' < "$OUT/4.txt")" = "15"
+
+## 5 act1-scenes
+do:    Count the entries in the "scenes" array of the first act in /home/michael/karte/parkour/out/02-die-raeuber-plot.json. Write only that number to $OUT/5.txt
+check: test "$(tr -d '[:space:]' < "$OUT/5.txt")" = "3"
+
+## 6 character-names
+do:    Write the "name" of every entry in the "characters" array of /home/michael/karte/parkour/out/01-karl-moor-characters.json as a JSON array of strings, in the order they appear, to $OUT/6.json
+check: python3 -c 'import json,os;g=json.load(open(os.environ["OUT"]+"/6.json"));t=[x["name"] for x in json.load(open("/home/michael/karte/parkour/out/01-karl-moor-characters.json"))["characters"]];raise SystemExit(0 if list(g)==t else 1)'
+
+## 7 source-title
+do:    Write the exact value of the "source_title" field of /home/michael/karte/parkour/out/01-karl-moor-characters.json to $OUT/7.txt
+check: python3 -c 'import json,os;t=json.load(open("/home/michael/karte/parkour/out/01-karl-moor-characters.json"))["source_title"];raise SystemExit(0 if open(os.environ["OUT"]+"/7.txt").read().strip()==t else 1)'
+
+## 8 suicide-character
+do:    In /home/michael/karte/parkour/out/01-karl-moor-characters.json, find the character whose description says he takes his own life. Write only that character's name to $OUT/8.txt
+check: test "$(cat "$OUT/8.txt" | tr -d '\n' | sed 's/^ *//; s/ *$//')" = "Franz Moor"
