@@ -5,6 +5,71 @@ No partial credit. No SKIP.
 
 ---
 
+## 2026-07-30 box #2 — the brief experiment
+
+**The headline result of the day.** Model, quantisation, tasks, gates and
+grading all held fixed. The only variable is three sentences of environment
+fact added to the brief.
+
+**Model:** GLM-4.7-Flash Q4_K_M · **Box:** 1× RTX 6000 Ada 48 GB · **ctx:** 65536
+
+| brief | real (A) | correct (B) | discerning (C) | **TRUE GATES** |
+|---|---|---|---|---|
+| strict | 10/10 | 5/10 | 10/10 | **5 / 10** |
+| guided | 10/10 | 8/10 | 10/10 | **8 / 10** |
+
+The guided brief adds only:
+
+```
+- jq is NOT installed. Use python3 or coreutils only.
+- Read the JSON structure before assuming it. A top-level object is not a
+  list; KEV entries live under the "vulnerabilities" key.
+- Your output must be valid bash. Do not emit prose. Do not emit fences.
+```
+
+**Prediction recorded before the run: 5/10 → 7 or 8. Result: 8.**
+
+### Reproducibility
+
+The strict run scored **5/10 on box #2**, identical to box #1 that morning —
+different hardware (1× RTX 6000 Ada vs 2× RTX 4060 Ti), different context
+(65536 vs 32768), different country. The instrument is stable.
+
+### It is not monotone — 5 fixed, 2 broke
+
+| point | strict | guided | |
+|---|---|---|---|
+| 11 · 16 · 18 · 19 · 20 | fail | **pass** | fixed |
+| 22 · 89 · 90 | pass | pass | — |
+| 13 | pass | **fail** | broke |
+| 25 | pass | **fail** | broke |
+
+Net +3. The two regressions matter more than the gain:
+
+- **13** — emitted a compressed python one-liner with a leading space on the
+  continuation line: `IndentationError`. Plausibly induced by the brief's own
+  "prefer `test "$(...)" = "$(...)"`" hint pushing toward compression.
+- **25** — compared the bare hash against the whole file with whitespace
+  stripped, but the artifact holds `<hash>  <filename>`. The task says "the
+  sha256sum output", which includes the filename. **This is ambiguity in the
+  task text, not a model failure.** It flips on a coin.
+
+### What this supports, and what it does not
+
+**Supports:** instruction quality moves a small model's ability to author a
+verification gate by 60% relative, with the model held fixed. Structure is a
+larger lever than it is usually given credit for.
+
+**Does not support:** "better prompts fix small models." One of the three added
+sentences caused a regression. Guidance is a lever with a sign, not a
+monotone improvement, and it must itself be measured.
+
+**Still true:** even at 8/10, one in five gates a 30B writes would let a wrong
+answer through or reject a right one. Authoring the gate stays with the
+operator. The model does the work.
+
+---
+
 ## 2026-07-30 — GLM-4.7-Flash
 
 **Model:** `GLM-4.7-Flash-Uncensored-HauhauCS-Balanced` Q4_K_M GGUF
