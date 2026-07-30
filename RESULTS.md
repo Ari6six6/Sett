@@ -54,6 +54,36 @@ Net +3. The two regressions matter more than the gain:
   sha256sum output", which includes the filename. **This is ambiguity in the
   task text, not a model failure.** It flips on a coin.
 
+### The quantisation axis — a negative result
+
+Same box, same tasks, same gates. `glm-q6` (Q6_K, 27.2 GB resident) versus
+`glm-q4` (Q4_K_M, 21.2 GB resident).
+
+| | strict | guided |
+|---|---|---|
+| **glm-q4** | 5/10 | **8/10** |
+| **glm-q6** | 4/10 | 5/10 |
+
+**Q6 scored worse than Q4 on both briefs.** That is the opposite of the
+expected direction and it should not be over-read.
+
+**What can honestly be said:**
+
+- Going Q4 → Q6 did **not** improve the model's ability to author a
+  verification gate. Whatever limits it at 5–8/10, quantisation damage in that
+  range is not the binding constraint.
+- The largest single effect observed today is the **brief** (+3 on q4), not the
+  quant (−1 strict, −3 guided).
+
+**What cannot be said:** that Q6 is *worse*. With n=10 a difference of one or
+two points is well inside noise, and no repeat runs were done. The q4 strict
+score reproduced exactly across two boxes, which is encouraging for the
+instrument, but a single reproduction is not an error bar.
+
+**The honest shape:** one clean positive (brief, +3, predicted in advance), one
+clean negative (quantisation, no improvement), and an n far too small to rank
+anything separated by one point. Next run needs repeats, not more conditions.
+
 ### What this supports, and what it does not
 
 **Supports:** instruction quality moves a small model's ability to author a
