@@ -50,6 +50,7 @@ audit_file() {
       [ -n "$p" ] || continue
       [ "$p" = "/home" ] || [ "$p" = "/home/." ] && continue
       is_example "$p" && continue
+      grep -qxF "$p" rot.ignore 2>/dev/null && continue
       if [ ! -e "$p" ]; then
         is_output "$p" && continue
         printf '%s\t%s\n' "$f" "$p"
@@ -85,5 +86,5 @@ if [ -n "$hits" ]; then
   exit 1
 fi
 
-say "clean: every asserted path exists  ($total distinct)"
+say "clean: every asserted path exists  ($total distinct, $(grep -cvE '^#|^$' rot.ignore 2>/dev/null || echo 0) allowlisted in rot.ignore)"
 exit 0

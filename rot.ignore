@@ -1,0 +1,15 @@
+# Paths that are DEAD ON PURPOSE.
+#
+# One path per line. A path belongs here only when the repo names it in order
+# to say "this is gone" — history, a post-mortem, a cautionary tale. Every
+# entry needs a reason on the line above it.
+#
+# This file is a confession, not a mute button. If you add a path here to make
+# rot.sh quiet about something you have not actually fixed, you have rebuilt
+# the fake gate one level up.
+
+# Quoted in README.md ("The fourth law was paid for") and SEAT.md's history as
+# the tool that vanished in the probe->sett merge. Fixed 2026-07-30: the law
+# and smoke-3 now name sett. Kept in prose so the lesson survives the fix.
+/home/michael/probe/probe
+/home/michael/probe/specs
