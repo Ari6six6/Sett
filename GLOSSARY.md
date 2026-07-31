@@ -229,3 +229,31 @@ every `.probe`), or **different representation** — e.g. answering the same
 question from the 51 MB STIX JSON *and* from the 63 MB SQLite index, which were
 built independently. Agreement across those is evidence. Agreement with
 yourself is not.
+
+**empty gate** — a gate that examined nothing and reported success. `gate C`
+with its parser missing printed `0/0 checks reject a plausible impostor, 0
+FAKE` and exited 0, and `selftest` called that clean on every spec because its
+rule was `passed == total` and `0 == 0`. Distinct from a **fake gate**, which
+runs and cannot fail; an empty gate never runs at all. Both read as green.
+**Zero of zero is not a pass.**
+
+**instrument drift** — the pattern behind three separate defects in one day, and
+the most useful thing this repository learned:
+
+> **An instrument narrows to the world that existed when it was written, and
+> keeps printing the same reassuring word while it does.**
+
+- `rot` audited paths matching `/home/...`. The specs became portable and said
+  `$CORPUS/...` instead. Coverage fell from 31 asserted paths to 13 and it
+  still printed `clean`.
+- `lint`'s schema-asymmetry check was a hardcoded dictionary of the two formats
+  the repo grew up on. A new gym introduced a third, lint reported 0 defects,
+  and the point it should have flagged scored 0/3.
+- `gate C` depended on a parser directory. Remove it and the gate reported
+  success over an empty set.
+
+None of the three was caught by reading the code. Each was caught by
+**deliberately breaking the world and checking the instrument still complained**
+— which is the [[negative control]] applied to the tools rather than to the
+model. An instrument you have not tried to blind is an instrument you are
+trusting, and trust is the thing this repository exists to replace.
