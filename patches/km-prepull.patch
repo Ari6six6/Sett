@@ -1,0 +1,92 @@
+--- /tmp/claude-1000/-home-michael/d9e88fa1-3550-4b0c-93bc-75a41f501826/scratchpad/setup.sh.bak	2026-07-31 17:06:32.742499375 +0000
++++ /home/michael/.km/setup.sh	2026-07-31 17:07:37.063366245 +0000
+@@ -549,9 +549,74 @@
+   printf '%s ' "$p"
+ }
+ 
++# Pull the GGUF with N parallel HTTP range requests instead of letting
++# llama.cpp fetch it single-stream.
++#
++# Hugging Face throttles PER CONNECTION, not per client. Measured on two boxes
++# on 2026-07-31, same wire, same minute:
++#
++#     1 connection    ~5 MB/s     18GB in ~50 minutes
++#     8 connections  ~48 MB/s
++#    16 connections  ~67-77 MB/s  18GB in ~5 minutes
++#
++# That is 45 minutes of paid idle on every cold box. The file is verified
++# against Hugging Face's own x-linked-etag, which for an LFS object IS the
++# sha256 of the content, so a truncated or corrupted assembly cannot be served.
++# On failure this returns nonzero and the caller falls back to -hf, which is
++# slow but always worked.
++_prepull_gguf() { # $1=repo $2=quant-or-file  -> echoes box-side path, or fails
++  local repo="$1" want="$2" n=16
++  local script; script=$(cat <<'PREPULL'
++set -uo pipefail
++REPO="$1"; WANT="$2"; N="$3"; D=/workspace/models
++mkdir -p "$D" 2>/dev/null || D="$HOME/models"; mkdir -p "$D"; cd "$D" || exit 1
++# Resolve the quant label (e.g. Q4_K_M) to an actual filename in the repo.
++FILE="$(curl -s --max-time 60 "https://huggingface.co/api/models/$REPO"   | python3 -c "import json,sys;d=json.load(sys.stdin);w=sys.argv[1];c=[f['rfilename'] for f in d.get('siblings',[]) if f['rfilename'].endswith('.gguf') and (w==f['rfilename'] or w in f['rfilename'])];print(c[0] if c else '')" "$WANT" 2>/dev/null)"
++[ -n "$FILE" ] || { echo "PREPULL-FAIL no gguf matching $WANT"; exit 1; }
++U="https://huggingface.co/$REPO/resolve/main/$FILE"
++[ -s "$D/$FILE" ] && { echo "PREPULL-OK $D/$FILE"; exit 0; }
++H="$(curl -sIL --max-time 60 "$U")"
++SZ="$(printf '%s' "$H" | grep -i '^content-length:' | tail -1 | tr -dc '0-9')"
++# cut the header NAME first: 'x-linkEDEATag' would otherwise donate 'edea'
++SHA="$(printf '%s' "$H" | grep -i '^x-linked-etag:' | tail -1 | cut -d: -f2- | tr -dc '0-9a-f')"
++[ -n "$SZ" ] || { echo "PREPULL-FAIL no content-length"; exit 1; }
++CH=$(( (SZ + N - 1) / N )); rm -f part.*
++for i in $(seq 0 $((N-1))); do
++  s=$(( i*CH )); e=$(( s+CH-1 )); [ "$e" -ge "$SZ" ] && e=$((SZ-1))
++  curl -sL --retry 5 --retry-all-errors -r "$s-$e" -o "part.$(printf '%03d' "$i")" "$U" &
++done
++wait
++GOT=$(cat part.* 2>/dev/null | wc -c)
++[ "$GOT" -eq "$SZ" ] || { echo "PREPULL-FAIL assembled $GOT != $SZ"; rm -f part.*; exit 1; }
++cat part.* > "$FILE" && rm -f part.*
++if [ -n "$SHA" ]; then
++  A="$(sha256sum "$FILE" | cut -d" " -f1)"
++  [ "$A" = "$SHA" ] || { echo "PREPULL-FAIL sha $A != $SHA"; rm -f "$FILE"; exit 1; }
++fi
++echo "PREPULL-OK $D/$FILE"
++PREPULL
++)
++  rrun "bash -s -- $(printf '%q %q %q' "$repo" "$want" "$n") <<'EOS'
++$script
++EOS" 1800
++  case "$ROUT" in
++    *PREPULL-OK*) printf '%s' "$ROUT" | sed -n 's/.*PREPULL-OK \(.*\)/\1/p' | tail -1; return 0 ;;
++    *) return 1 ;;
++  esac
++}
++
+ _llama_cmd() { # $1=key $2=maxlen $3=port
+   local key="$1" maxlen="$2" port="$3" weights
+-  if [ -n "${M_GGUF_FILE[$key]}" ]; then
++  # Prefer a locally pre-pulled file. -hf remains the fallback: slow, but it
++  # has always worked, and a fast path that can strand you is not an upgrade.
++  local want="${M_GGUF_FILE[$key]:-${M_GGUF_QUANT[$key]}}" local_gguf=""
++  if [ "${KM_PREPULL:-1}" = "1" ]; then
++    info "pulling weights with 16 parallel connections (HF throttles per connection)…"
++  fi
++  if [ "${KM_PREPULL:-1}" = "1" ] && local_gguf="$(_prepull_gguf "${M_REPO[$key]}" "$want")" && [ -n "$local_gguf" ]; then
++    ok "weights on disk → $local_gguf"
++    weights="-m $local_gguf"
++  elif [ -n "${M_GGUF_FILE[$key]}" ]; then
+     weights="--hf-repo ${M_REPO[$key]} --hf-file ${M_GGUF_FILE[$key]}"
+   else
+     weights="-hf ${M_REPO[$key]}:${M_GGUF_QUANT[$key]}"
+@@ -677,7 +742,12 @@
+       return 1
+     fi
+     if [ -n "$total" ]; then
+-      rrun "du -sb ~/.cache/llama.cpp ~/.cache/huggingface 2>/dev/null | awk '{s+=\$1} END{print s+0}'" 20
++      # The meter used to read only ~/.cache/{llama.cpp,huggingface}. Vast images
++      # export HF_HOME=/workspace/.hf_home, so on those boxes it measured an empty
++      # directory and printed "0%" for 25 minutes while gigabytes landed elsewhere.
++      # A progress display that asserts something the box disagrees with is the
++      # same defect class as a check grading against a deleted directory.
++      rrun "du -sb \${HF_HOME:-\$HOME/.cache/huggingface} ~/.cache/llama.cpp ~/.cache/huggingface /workspace/models 2>/dev/null | awk '{s+=\$1} END{print s+0}'" 20
+       local cur got frac; cur="$(printf '%s' "$ROUT" | tr -dc '0-9')"
+       if [ -n "$cur" ]; then
+         got="$cur"; frac="$(awk -v g="$got" -v t="$total" 'BEGIN{f=g/t; if(f>0.99)f=0.99; printf "%d", f*100}')"

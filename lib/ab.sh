@@ -63,9 +63,13 @@ awk -F'\t' -v n="$N" '
 
 echo
 echo "=== totals ==="
-awk -F'\t' -v n="$N" '
+# NP was hardcoded to 8 — written when the only A/B subject was the 8-point
+# gym. Pointed at code-10 it printed a denominator of 24 for 30 runs: a number
+# that lies about how many chances there were.
+NP="$(./sett prompts "$SPEC" | grep -c '^## ')"
+awk -F'\t' -v n="$N" -v np="$NP" '
   $4=="PASS" {t[$1]++}
-  END {printf "A: %d/%d points\nB: %d/%d points\n", t["A"]+0, n*8, t["B"]+0, n*8}
+  END {printf "A: %d/%d points\nB: %d/%d points\n", t["A"]+0, n*np, t["B"]+0, n*np}
 ' "$LOG"
 echo
 echo "raw: $LOG"
