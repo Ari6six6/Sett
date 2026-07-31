@@ -10,7 +10,7 @@
 #   ./work.sh log        tail the runner log
 #   ./work.sh status     what is alive
 set -uo pipefail
-cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."   # lib/ -> repo root
 S=sett
 LOG=runs/work.log
 

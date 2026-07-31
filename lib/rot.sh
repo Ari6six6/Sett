@@ -23,7 +23,7 @@
 # usage: ./rot.sh          audit
 #        ./rot.sh --quiet  exit code only (0 = clean)
 set -uo pipefail
-cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."   # lib/ -> repo root
 
 QUIET=0; [ "${1:-}" = "--quiet" ] && QUIET=1
 say() { [ "$QUIET" -eq 1 ] || printf '%s\n' "$*"; }
@@ -58,17 +58,24 @@ audit_file() {
     done
 }
 
+# The docs that INSTRUCT — the law, the front page, the guided tour. These
+# make claims about the box as it is now, so every path and verb in them must
+# be live. docs/FLIGHT-*.md and docs/MORNING-*.md are deliberately excluded:
+# they are dated records of what was true on a given night, and a record that
+# names a path which has since been deleted is accurate, not rotten.
+INSTRUCTING="SEAT.md README.md docs/SHOWCASE.md"
+
 say "== paths asserted by this repo =="
 say
 
 # Only files that ASSERT are audited: the law, the constitution, the specs.
 # sett/gate-c.sh/rot.sh quote dead paths in their comments on purpose — that is
 # history, not a claim about the box.
-hits="$(for f in SEAT.md README.md SHOWCASE.md specs/*.probe; do
+hits="$(for f in $INSTRUCTING specs/*.probe; do
           [ -f "$f" ] && audit_file "$f"
         done)"
 
-allpaths="$(for f in SEAT.md README.md SHOWCASE.md specs/*.probe; do
+allpaths="$(for f in $INSTRUCTING specs/*.probe; do
               [ -f "$f" ] && grep -ohE '/home/[A-Za-z0-9_./-]+' "$f" 2>/dev/null
             done | sed 's/[`",);:.]*$//' | sort -u | grep -v '^/home/\.$' | grep -v '^/home$')"
 total="$(printf '%s' "$allpaths" | grep -c . || true)"
@@ -106,7 +113,7 @@ done < <(
   # fences. Prose says things like "SETT is one program" and that is not a
   # command; reading it as one is how an audit earns a reputation for crying
   # wolf, which is how audits get ignored.
-  for f in SEAT.md README.md RESULTS.md SHOWCASE.md; do
+  for f in $INSTRUCTING RESULTS.md; do
     [ -f "$f" ] || continue
     grep -oE '`sett [a-z-]+' "$f" | sed 's/`//' | awk -v f="$f" '{print f ":" $2}'
     # only ```sh fences — README also has a plain fence listing the repo's

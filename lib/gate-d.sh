@@ -18,7 +18,7 @@
 #
 # usage: ./gate-d.sh <spec>
 set -uo pipefail
-cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."   # lib/ -> repo root
 SPEC="${1:?usage: ./gate-d.sh <spec>}"
 F="specs/$SPEC.probe"
 [ -f "$F" ] || { echo "no such spec: $F" >&2; exit 2; }

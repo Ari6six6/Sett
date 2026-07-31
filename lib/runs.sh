@@ -8,7 +8,7 @@
 #
 # usage: ./runs.sh <spec> <n> [law]
 set -uo pipefail
-cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."   # lib/ -> repo root
 SPEC="${1:?usage: ./runs.sh <spec> <n> [law]}"; N="${2:?}"; LAW="${3:-}"
 TSV="runs/ab-$SPEC-x$N.tsv"; : > "$TSV"
 mkdir -p runs/archive

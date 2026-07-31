@@ -11,7 +11,7 @@
 #
 # usage: ./ab.sh <spec> <n> <lawA> <lawB>
 set -uo pipefail
-cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."   # lib/ -> repo root
 
 SPEC="${1:?usage: ./ab.sh <spec> <n> <lawA> <lawB>}"
 N="${2:?}"; LAW_A="${3:?}"; LAW_B="${4:?}"

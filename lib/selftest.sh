@@ -19,7 +19,7 @@
 #
 # usage: ./selftest.sh [--quiet]
 set -uo pipefail
-cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."   # lib/ -> repo root
 Q=0; FAST=0
 for a in "$@"; do
   case "$a" in

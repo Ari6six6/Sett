@@ -25,7 +25,7 @@
 #
 # usage: ./leak.sh [since]        default: today
 set -uo pipefail
-cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."   # lib/ -> repo root
 
 SINCE="${1:-$(date +%Y-%m-%d) 00:00}"
 SESS="$HOME/.pi/agent/sessions"

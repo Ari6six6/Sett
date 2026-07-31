@@ -548,19 +548,19 @@ case "${1:-}" in
            # gate C asks "is it wrong". A spec wants both.
            if [ "${2:-}" = "--broken" ] || [ "${1:-}" = "--broken" ]; then
              set -- $(printf '%s\n' "$@" | grep -v -- '--broken')
-             exec "$SETT_ROOT/gate-d.sh" "$@"
+             exec "$SETT_ROOT/lib/gate-d.sh" "$@"
            fi
            if [ "${2:-}" = "--wrong" ] || [ "${1:-}" = "--wrong" ]; then
              set -- $(printf '%s\n' "$@" | grep -v -- '--wrong')
-             exec "$SETT_ROOT/gate-c.sh" "$@"
+             exec "$SETT_ROOT/lib/gate-c.sh" "$@"
            fi
            cmd_sanity "$@" ;;
-  rot)     shift; exec "$SETT_ROOT/rot.sh" "$@" ;;
-  lint)    shift; exec "$SETT_ROOT/lint.sh" "$@" ;;
-  selftest) shift; exec "$SETT_ROOT/selftest.sh" "$@" ;;
-  leak)    shift; exec "$SETT_ROOT/leak.sh" "$@" ;;
-  ab)      shift; exec "$SETT_ROOT/ab.sh" "$@" ;;
-  runs)    shift; exec "$SETT_ROOT/runs.sh" "$@" ;;
+  rot)     shift; exec "$SETT_ROOT/lib/rot.sh" "$@" ;;
+  lint)    shift; exec "$SETT_ROOT/lib/lint.sh" "$@" ;;
+  selftest) shift; exec "$SETT_ROOT/lib/selftest.sh" "$@" ;;
+  leak)    shift; exec "$SETT_ROOT/lib/leak.sh" "$@" ;;
+  ab)      shift; exec "$SETT_ROOT/lib/ab.sh" "$@" ;;
+  runs)    shift; exec "$SETT_ROOT/lib/runs.sh" "$@" ;;
   score)   shift; cmd_score "$@" ;;
   new)     shift; cmd_new "$@" ;;
   status)  shift; cmd_status "$@" ;;
