@@ -20,7 +20,17 @@
 # usage: ./selftest.sh [--quiet]
 set -uo pipefail
 cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-Q=0; [ "${1:-}" = "--quiet" ] && Q=1
+Q=0; FAST=0
+for a in "$@"; do
+  case "$a" in
+    --quiet) Q=1 ;;
+    # --fast skips the historical specs, whose gates are frozen and whose
+    # exceptions are already accepted. Full run is ~118s and flash-100-core
+    # alone is ~30s of it; a check too slow to run before a commit is a check
+    # that does not get run.
+    --fast)  FAST=1 ;;
+  esac
+done
 say(){ [ "$Q" -eq 1 ] || printf '%s\n' "$*"; }
 
 accepted() { grep -qxF "$1" selftest.accept 2>/dev/null; }
@@ -33,6 +43,9 @@ say "$(printf '%.0s-' {1..62})"
 
 for f in specs/*.probe; do
   s="$(basename "$f" .probe)"
+  if [ "$FAST" -eq 1 ]; then
+    case "$s" in flash-100-core|analyst-12) say "$(printf '%-16s %s' "$s" '(skipped: --fast)')"; continue ;; esac
+  fi
 
   a="$(./sett gate "$s" 2>/dev/null | tail -1 | grep -oE '[0-9]+/[0-9]+' | head -1)"
   c="$(./sett gate "$s" --wrong 2>/dev/null | tail -1 | grep -oE '[0-9]+/[0-9]+' | head -1)"
@@ -67,7 +80,37 @@ for f in specs/*.probe; do
   [ "$l" != "0" ] && { accepted "$s:lint" || { fail=$((fail+1)); say "   ! $l lint defect(s) on $s"; }; }
 done
 
+# --- the program itself, not just the gates -----------------------------
+# Every gate above tests a SPEC. Nothing tested `sett`. Eight verbs were added
+# in one night — rot, lint, leak, ab, runs, selftest, check --out, gate
+# --broken — and a typo in the dispatch case would not have failed any gate.
 say
+vfail=0
+while IFS='|' read -r label cmd; do
+  [ -n "$label" ] || continue
+  eval "$cmd" >/dev/null 2>&1; rc=$?
+  # 0 = fine, 1 = a real "found something" answer. 2+ = die/usage/crash.
+  [ "$rc" -le 1 ] || { say "  ! verb failed: $label (exit $rc)"; vfail=$((vfail+1)); }
+done <<'VERBS'
+sett help|./sett help
+sett body|./sett body
+sett doctor|./sett doctor
+sett score|./sett score
+sett status|./sett status code-10
+sett check|./sett check code-10
+sett check --out|./sett check code-10 --out reference/code-10-reference
+sett gate|./sett gate code-10
+sett gate --wrong|./sett gate code-10 --wrong
+sett gate --broken|./sett gate debug-7 --broken
+sett lint|./sett lint code-10
+sett rot|./sett rot
+sett leak|./sett leak
+sett report|./sett report code-10
+VERBS
+# an unknown verb MUST die rather than silently succeed
+./sett definitely-not-a-verb >/dev/null 2>&1 && { say "  ! unknown verb did not die"; vfail=$((vfail+1)); }
+if [ "$vfail" -eq 0 ]; then say "verbs clean (14 verbs run; unknown verb dies)"; else fail=$((fail+vfail)); fi
+
 r="$(./sett rot --quiet >/dev/null 2>&1; echo $?)"
 if [ "$r" -eq 0 ]; then say "rot   clean"; else say "rot   ROT PRESENT"; fail=$((fail+1)); fi
 
