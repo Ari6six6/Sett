@@ -939,3 +939,51 @@ became portable, `lint` was hardcoded to two formats it grew up with, and gate
 C reported success on an empty run. The pattern is the finding: *an instrument
 tends to narrow to the world that existed when it was written, and it keeps
 printing the same reassuring word while it does.*
+
+---
+
+## Sealed prediction 4 is not testable, and I broke it myself
+
+**Written at 18:10Z with six of ten reps in, before the final number.**
+
+Prediction 4 said the `stix-graph-12` mean at n=10 would land in **8.2–9.8**,
+the 95% band implied by the n=3 data, and that landing outside it would mean
+the n=3 estimate was *biased rather than noisy* — a finding about the
+instrument.
+
+Through five reps it is running **10, 10, 11, 11, 11**. It is going to fail
+high. But it cannot be read the way the prediction intended, because **the
+conditions moved**:
+
+| | box #4 (the n=3 baseline) | box #5 (this run) |
+|---|---|---|
+| GPU | A100-PCIE 40 GB | RTX PRO 6000 Blackwell 95 GB |
+| context | 65 536 | 98 304 |
+| model, quant, spec text | identical | identical |
+
+The spec text really is identical — the portability refactor was proven
+cosmetic by rendering both versions and diffing, so the prompt is byte for
+byte what box #4 saw. But **context size is not a neutral variable for this
+gym.** Every point traverses a 51 MB bundle through a `bash` tool, and a model
+with half again as much room to hold what it read has a plausible causal path
+to a better score. That is a mechanism, not merely noise.
+
+So a mean above the band supports either reading — n=3 was biased low, *or*
+the bigger box helps — and **this run cannot separate them.**
+
+**That is my error, not the instrument's.** I sealed a prediction about
+sampling error and then changed the hardware underneath it. It is the same
+class of mistake as prediction 4 this morning, which aimed at a point that had
+never failed: a prediction that cannot come out false is useless, and so is one
+whose conditions I did not hold fixed. The repo has a word for the second and I
+wrote it into the glossary this afternoon — **confound** — and then walked into
+one anyway.
+
+What the run still settles cleanly is **prediction 5**, which is about the
+*shape* rather than the level: at least 5 of the 7 NOISY points should still
+read NOISY, because a point whose true rate is mid-range cannot resolve at
+n=10. That claim survives the box change, since it is about within-run
+variance rather than the absolute score.
+
+**The clean experiment was available and I did not run it:** ten reps on the
+same box as the baseline. Recorded so the next person does not repeat it.
