@@ -192,8 +192,14 @@ keeps saying the reassuring word. Now rot expands the variables first, and a
 planted dead path is caught through them.
 
 **both mouths** — the model being graded and the model doing the grading. Until
-`sett behave --session`, only the cheap one was ever measured. Asked the same
-question, they answered nearly the same: **67% versus 68%** verified their own
-work. The difference between the mouth that does the craft and the mouth that
-checks it is procedural, not cognitive — which is the entire argument for
-building instruments instead of trying harder.
+`sett behave --session`, only the cheap one was ever measured. Asked a similar
+question, they answered similarly: **67% versus 68%** checked their own work.
+
+Read that as a statement about **habit, not ability**. The two figures are not
+the same measurement — one counts artifact re-reads per gym point, the other
+counts verification commands after a file change — so the near-match may be an
+artefact of how both were defined. What it does not say is that the two models
+are equally capable; the gym scores measure that, and they differ.
+
+What it does say is that the mouth doing the checking ran at 68% too. Neither
+rate is good enough, which is the argument for instruments over trying harder.

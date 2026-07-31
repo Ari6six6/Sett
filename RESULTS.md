@@ -715,8 +715,16 @@ asks it the same question.
 |---|---|---|
 | checked its own work | **67%** | **68%** |
 
-**The same rate.** A 30-billion-parameter model in a gym and a frontier model
-driving the repo verified their own output about equally often. The assistant
+**Nearly the same rate — and the comparison must be read carefully.** These are
+not the same measurement: the gym figure counts artifact re-reads per point,
+the session figure counts verification commands within six tool calls of a file
+change. Different definitions over different populations doing different work,
+both written by the same hand. The near-match is striking and may be
+coincidence of definition; it is **not** evidence that the two models are
+equally capable, which is what the gym scores measure and where they differ.
+
+What it does support is narrower and still worth having: the mouth doing the
+checking was itself running at 68%. The assistant
 also wrote 125 times and read 29 — a read:write ratio of **0.23**, while
 working under a law whose first rule is *answer from disk, not from your
 weights.*
