@@ -533,11 +533,11 @@ cmd_score() {
 
   echo "== ledger ==  computed from runs/*/state.tsv, conditions from runs.tsv"
   echo
-  printf '%-16s %-7s %-22s %-8s %-16s %s\n' spec score model spec@ when law
-  printf '%.0s-' {1..86}; echo
+  printf '%-16s %-7s %-10s %-20s %-8s %-16s %s\n' spec score reps model spec@ when law
+  printf '%.0s-' {1..96}; echo
 
   local any=0 flagged=0
-  local sf name total scored line served model law spec_sha when now_sha f
+  local sf name total scored line served model law spec_sha when now_sha f reps
   for sf in "$RUNS"/*/state.tsv; do
     [ -f "$sf" ] || continue
     name="$(basename "$(dirname "$sf")")"
@@ -565,12 +565,27 @@ cmd_score() {
       when="$(date -u -r "$sf" +'%Y-%m-%d %H:%M' 2>/dev/null || echo '?')"
     fi
 
+    # `sett runs` wipes runs/<spec> between reps, so state.tsv only ever holds
+    # the LAST flight. A ledger that shows one number for a gym known to swing
+    # by a point contradicts this repo's own "one run is an anecdote". If the
+    # per-rep tally is on disk, show every rep.
+    reps="-"
+    local rt; rt="$(ls -t "$RUNS/ab-$name-x"*.tsv 2>/dev/null | head -1 || true)"
+    if [ -n "$rt" ] && [ -s "$rt" ]; then
+      # Deliberately not gawk's asorti(): this repo claims bash + coreutils +
+      # python3 and nothing else, and a claim like that is only true if it is
+      # actually kept. sort -n does the ordering instead.
+      reps="$(awk -F'\t' '$4=="PASS"{c[$2]++} END {for(k in c) print k, c[k]}' "$rt" 2>/dev/null \
+              | sort -n | awk '{printf "%s%s", (NR>1?",":""), $2} END {print ""}' || true)"
+      [ -n "$reps" ] || reps="-"
+    fi
+
     local mark=""
     if [ -n "$now_sha" ] && [ "$spec_sha" != "?" ] && [ "$now_sha" != "$spec_sha" ]; then
       mark=" (!)"; flagged=$((flagged+1))
     fi
-    printf '%-16s %-7s %-22s %-8s %-16s %s%s\n' \
-      "$name" "$scored/$total" "${model:0:22}" "${spec_sha:0:6}" "$when" "$law" "$mark"
+    printf '%-16s %-7s %-10s %-20s %-8s %-16s %s%s\n' \
+      "$name" "$scored/$total" "$reps" "${model:0:20}" "${spec_sha:0:6}" "$when" "$law" "$mark"
   done
 
   [ "$any" -eq 1 ] || echo "(no runs yet — sett gym <spec>)"

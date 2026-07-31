@@ -345,6 +345,40 @@ found out it wasn't.
 
 ---
 
+## A score without its conditions is not a measurement
+
+```console
+$ sett score
+== ledger ==  computed from runs/*/state.tsv, conditions from runs.tsv
+
+spec             score   model                  spec@    when             law
+code-10          9/10    glm-4.7-flash          182cc6   2026-07-31 13:20 SEAT.md
+```
+
+`sett score` used to be `cat RESULTS.md` — a table maintained **by hand**, in a
+program whose whole claim is that the ledger makes faith obsolete.
+
+Now every run records what it ran under: the model read off the **live
+endpoint** (not off a config file that can lie), the law, the `sett` commit, and
+the sha256 of the spec text.
+
+`spec@` is the load-bearing column. A score is a claim about one exact gym text.
+Edit a single `do:` line and every number recorded against it silently becomes a
+number about a different gym — so the ledger marks it `(!)` and says so:
+
+```console
+(!) the spec has CHANGED since that score was recorded. The number is
+    about a gym text that no longer exists on disk. Re-run before
+    comparing it to anything.
+```
+
+The corpus is pinned the same way, and for the same reason. Three days after
+the pin, CISA's catalogue gained exactly one entry — **1655 → 1656**. Any check
+with `1655` hardcoded would now fail a model that answered correctly. It would
+not break. It would invert.
+
+---
+
 ## Prove nothing was lost
 
 ```console
@@ -372,14 +406,14 @@ sett kill
 sett birth "<ssh string>"     # rent, provision, wire, prove it thinks
 sett doctor                   # endpoint is truth; find and fix drift
 sett new mygym                # scaffold a spec
-sett gate mygym               # A: fake checks?
-sett gate mygym --wrong       # C: existence tests?
-sett rot                      # R: has the ground moved?
+sett lint mygym               # what did you forget to say?
+sett selftest                 # A/B/C/D + rot + leak on every spec, no GPU
 sett gym mygym                # fly it — fresh process per point
+sett runs mygym 3             # three times, keeping every rep's artifacts
 sett check mygym              # re-verify, read-only, no model, free
 sett ab mygym 3 lawA lawB     # is that difference real, or is it luck?
 sett leak                     # did it read its own answer key?
-sett score                    # the table
+sett score                    # the ledger, with the conditions
 sett vault check gold         # prove nothing was lost
 sett kill                     # stop paying
 ```
