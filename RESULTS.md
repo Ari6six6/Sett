@@ -52,6 +52,65 @@ size is not measurable at this n.
 **Correction to the morning brief:** it said p2 had scored "0/3 in every
 configuration". The earliest run scored 1/4. The table above is the record.
 
+### 2 · `code-10` — the same mean, a different shape
+
+**9, 7, 9 — mean 8.33.** Yesterday: 8, 8, 9 — mean 8.33. Identical means, and
+the identity is a coincidence: the per-point picture moved in both directions.
+
+| point | baseline | today | |
+|---|---|---|---|
+| 10 · spec-linter | 1/3 | **3/3 SOLID** | the id-token rule now stated |
+| 4 · retry-backoff | 3/3 | 2/3 NOISY | drifted |
+| 8 · stix-resolve-refs | 2/3 | 2/3 NOISY | unchanged frontier |
+| 9 · cli-tool | 1/3 | **0/3 DEAD** | see below |
+
+**Prediction 3 confirmed.** Point 10 was a coin flip and is now solid.
+
+**Prediction 4 was untestable and should not have been written.** It aimed at
+point 2's empty-list case, but point 2 scored 3/3 in every baseline run. There
+was no coin flip there to fix, so no outcome today could confirm or refute it.
+Writing a prediction about a point that was never observed failing is the same
+error as an existence test: it cannot come out false.
+
+**Point 9 got worse, and that is the useful part.** `sett runs` passes no
+`--law`, so every rep here flew **bare** — `SEAT.md`'s "jq is NOT installed"
+was never in the prompt. Point 9 reaches for `jq`, which does not exist on the
+box. The earlier law A/B found "no effect detected"; this is the point that
+A/B should have been measuring, and it is now 0/3 without the law. That is an
+argument for the law that no aggregate score could have made.
+
+### 3 · `stix-graph-12` — first flight, and the largest single fix
+
+The gym had **named its corpus in point 1 only**. Every point is a fresh
+process seeing one `do:` line, so eleven of twelve points never told the model
+which file to open. It had never been flown.
+
+**Rep 1: 10/12.** Eight consecutive points passing on multi-hop relationship
+resolution over a 25 843-object STIX bundle — resolving `source_ref` and
+`target_ref` against an index the model has to build before it can answer
+anything. The two failures, points 9 and 10, are genuine traversal frontier
+rather than missing instructions.
+
+### 4 · `debug-7` — repairing is harder than writing
+
+The repair gym, built from seven real broken files the model itself produced,
+graded by the same checks the originals used. Never run until today.
+
+**5, 5, 3 out of 7 — mean 4.33 (62%)**, against **8.33/10 (83%)** for writing
+fresh code on the same box in the same hour.
+
+| bucket | points |
+|---|---|
+| SOLID 3/3 | 2, 6 |
+| NOISY | 1, 3, 4, 5, 7 |
+| DEAD | none |
+
+Five of seven points are coin flips. Nothing is dead, so no point is beyond
+the model — but only two are reliable. **Writing code and repairing code are
+different skills**, and this is the first measurement of the second one here.
+The comparison is as close to controlled as this apparatus gets: same model,
+same quantisation, same box, same hour, same grading checks.
+
 ## 2026-07-30 box #2 — the brief experiment
 
 **The headline result of the day.** Model, quantisation, tasks, gates and
