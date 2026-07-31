@@ -9,10 +9,34 @@ the analysis, the confounds, and the caveats a table cannot carry.
 
 ---
 
-## 2026-07-31 box #4 — the six predictions
+## The standing table
+
+Every gym, flown three times each on one box in one afternoon.
 
 **Model:** GLM-4.7-Flash Q4_K_M (HauhauCS Balanced) · **Box:** 1× A100-PCIE
-40 GB · **ctx:** 65536 · **n=3 per gym**
+40 GB · **ctx:** 65536 · **law:** none (bare seat) · 2026-07-31
+
+| gym | what it asks for | reps | mean | shape |
+|---|---|---|---|---|
+| `code-10` | ten coding tasks, three over real corpora | 9, 7, 9 | **8.33/10** | 7 SOLID · 2 NOISY · 1 DEAD |
+| `stix-graph-12` | multi-hop traversal of a 25 843-object STIX bundle | 10, 9, 8 | **9.00/12** | 5 SOLID · 7 NOISY · 0 DEAD |
+| `code-sett-8` | eight utilities this repo actually wanted | 8, 7, 7 | **7.33/8** | 6 SOLID · 2 NOISY · 0 DEAD |
+| `debug-7` | repair seven genuinely broken files | 5, 5, 3 | **4.33/7** | 2 SOLID · 5 NOISY · 0 DEAD |
+| `smoke-3` | wiring check | 3 | 3/3 | — |
+
+Read the `shape` column, not the mean. `code-sett-8` at 7.33/8 and `debug-7` at
+4.33/7 are 92% and 62%, and the second number is the interesting one:
+**authoring 83%, repairing 62%**, same model, same box, same hour, same
+grading checks.
+
+The one DEAD point is `code-10` p9, and it is dead for a stated reason — see
+below. Nothing else in 37 points across four gyms failed every time.
+
+`sett score` prints the live version of this table.
+
+---
+
+## 2026-07-31 box #4 — the six predictions
 
 Six fixes had been written, gated, and never run. Each was recorded in
 `docs/MORNING-2026-07-31.md` as a prediction *before* the box was rented. This
@@ -85,11 +109,26 @@ The gym had **named its corpus in point 1 only**. Every point is a fresh
 process seeing one `do:` line, so eleven of twelve points never told the model
 which file to open. It had never been flown.
 
-**Rep 1: 10/12.** Eight consecutive points passing on multi-hop relationship
-resolution over a 25 843-object STIX bundle — resolving `source_ref` and
-`target_ref` against an index the model has to build before it can answer
-anything. The two failures, points 9 and 10, are genuine traversal frontier
-rather than missing instructions.
+**10, 9, 8 — mean 9.00, spread 8–10.** Multi-hop relationship resolution over
+a 25 843-object STIX bundle: resolving `source_ref` and `target_ref` against an
+index the model must build before it can answer anything.
+
+**Prediction 5 confirmed, and it is the largest single fix of the day.** A gym
+that could not run at all now averages 9/12.
+
+**No point is DEAD.** Every one of the twelve passed at least once, so nothing
+here is beyond the model. But **7 of 12 are NOISY** — they flip between reps:
+
+| bucket | points |
+|---|---|
+| SOLID 3/3 | 1, 3, 5, 7, 8 |
+| NOISY | 2, 4, 6, 9, 10, 11, 12 |
+| DEAD | none |
+
+That is the honest shape and it is not a flattering one. A gym where more than
+half the points flip cannot rank anything at n=3, and the mean of 9.00 carries
+a spread of two points. The right next move is more reps, not more gyms —
+`sett runs stix-graph-12 10` would say whether 9.00 is a level or a coin.
 
 ### 4 · `debug-7` — repairing is harder than writing
 

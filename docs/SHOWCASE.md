@@ -269,10 +269,16 @@ A 30-billion-parameter model, on a card you rented by the hour, wrote working
 code against 25 843 real STIX objects and 1 655 real CISA KEV entries. First
 attempt. No retries.
 
-**That was one run. Run it three times and it scores 8, 8, 9** — points 1
-through 7 pass every time, points 8, 9 and 10 are the frontier. The honest
+**That was one run. Run it three times and it scores 8, 8, 9.** The honest
 number is 8.33, and the only reason this document can tell you that is that
 the tool below refuses to let one run stand as a result.
+
+Repeated the next day on a different box — an A100 40 GB instead of an RTX
+6000 Ada — it scored **9, 7, 9. Mean 8.33 again.** Same number, different
+failures: the spec-linter point went from a coin flip to solid, and a
+different point drifted the other way. Two independent triples, two different
+machines, one mean. That is what an instrument reading a level looks like,
+and it is why the spread is printed rather than the average alone.
 
 Fresh process per point. No long horizon to lose, nothing to forget, no
 context to poison.
