@@ -14,12 +14,14 @@ $ sett gym code-10
 run: 9 PASS  1 FAIL  0 ERROR  (0 already passing, 10 points)
 
 $ sett score
-spec             score   model                  spec@    when
-code-10          9/10    glm-4.7-flash          182cc6   2026-07-31 13:20
+spec             score   reps       model                spec@    when
+code-10          9/10    9,7,9      glm-4.7-flash        182cc6   2026-07-31 13:27
+code-sett-8      7/8     8,7,7      glm-4.7-flash        4f3a2a   2026-07-31 13:10
+debug-7          3/7     5,5,3      glm-4.7-flash        4fce52   2026-07-31 14:07
 ```
 
-No transcript. No vibe. No "looks good to me." A number, the model that earned
-it, and the hash of the exact task text it was earned against.
+No transcript. No vibe. No "looks good to me." Every rep, the model that earned
+them, and the hash of the exact task text they were earned against.
 
 ---
 
@@ -188,14 +190,24 @@ fourth law.
 
 ```console
 $ sett score
-spec             score   model                  spec@    when             law
-code-10          9/10    glm-4.7-flash          182cc6   2026-07-31 13:20 SEAT.md
+== ledger ==  computed from runs/*/state.tsv, conditions from runs.tsv
+
+spec             score   reps       model                spec@    when             law
+------------------------------------------------------------------------------------------------
+code-10          9/10    9,7,9      glm-4.7-flash        182cc6   2026-07-31 13:27 -
+code-sett-8      7/8     8,7,7      glm-4.7-flash        4f3a2a   2026-07-31 13:10 -
+debug-7          3/7     5,5,3      glm-4.7-flash        4fce52   2026-07-31 14:07 -
+smoke-3          3/3     -          glm-4.7-flash        02b6a0   2026-07-31 12:49 -
 ```
 
 `spec@` is the hash of the gym text the score was earned against. Edit a `do:`
 line and every number recorded against it silently becomes a number about a
 different gym — so `sett score` marks it `(!)` and says so. A score without its
 model, its law and its task text is not a measurement.
+
+`reps` is there because one run is an anecdote. `code-10` scoring 9 is a
+different claim from `code-10` scoring 9, 7, 9 — and only the second one is
+true.
 
 `sett score --doc` is [RESULTS.md](RESULTS.md): the written record, the
 analysis, and the caveats.
