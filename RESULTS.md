@@ -800,3 +800,33 @@ here rather than quietly left deleted.
 
 Found because the operator asked a hostile question about who writes the gyms.
 No gate covers prose, and prose is where the flattering claims live.
+
+---
+
+## SEALED 2026-07-31 — written BEFORE box #5 was provisioned
+
+Recorded first, on the operator's challenge, so the record shows they were not
+written after seeing the outcome.
+
+### `index-6` — the lab's missing tool, never run
+
+1. **Points 1, 2 and 6 land SOLID (3/3).** Type census, external-id lookup and
+   the CLI wrapper are single-table queries with the contract fully stated.
+2. **Point 5 is the one that flips.** The unmitigated join needs a correlated
+   `NOT IN` over a subquery of `relationships` while joined to `kill_chain`.
+   It is the only point requiring two joins and a negation.
+3. **Gym mean ≥ 4.5 / 6.**
+
+### `stix-graph-12` at n=10 — killing the noise on the flagship number
+
+4. **The mean lands within 8.2–9.8**, the 95% band implied by the n=3 data.
+   Outside that band means the n=3 estimate was *biased*, not merely noisy —
+   a finding about the instrument, not the model.
+5. **At least 5 of the 7 currently-NOISY points still read NOISY.** A point
+   whose true rate is ~0.67 has a 1.8% chance of reading all-pass-or-all-fail
+   at n=10, so genuine mid-rate points cannot resolve. If most of them *do*
+   resolve, the n=3 flapping was never sampling noise — it was structural, and
+   that would be the most important thing this run could say.
+
+Failure of 4 or 5 is more interesting than success. Both are about whether the
+instrument reads true, not about whether the model is good.
