@@ -152,7 +152,7 @@ flash-100-core   23/23     none      22/23     n/a       12
 smoke-3          3/3       none      3/3       n/a       0
 stix-graph-12    12/12     12/12     12/12     n/a       0
 
-verbs clean (15 verbs run; unknown verb dies)
+verbs clean (18 verbs run; unknown verb dies)
 rot   clean
 leak  clean (no run read its own spec today)
 
@@ -231,7 +231,7 @@ gate D: 0/7 broken inputs pass. Every point requires an actual repair.
 $ sett rot
 == paths asserted by this repo ==
 clean: every asserted path exists and every documented verb resolves
-       (31 paths, 2 allowlisted in rot.ignore)
+       (37 paths, 2 allowlisted in rot.ignore)
 ```
 
 This one was paid for in blood. A check computed its expected value with
@@ -406,6 +406,44 @@ The corpus is pinned the same way, and for the same reason. Three days after
 the pin, CISA's catalogue gained exactly one entry — **1655 → 1656**. Any check
 with `1655` hardcoded would now fail a model that answered correctly. It would
 not break. It would invert.
+
+---
+
+## And it audits the auditors
+
+Three instruments went blind in a single day, each one narrowing silently to
+the world that existed when it was written:
+
+| instrument | how it went blind |
+|---|---|
+| `rot` | audited literal `/home/...` paths. The specs became portable and said `$CORPUS/...`; coverage fell from 31 asserted paths to 13 and it still printed `clean` |
+| `lint` | its schema check was a hardcoded dict of two formats. A gym introduced a third, lint reported 0, and the point it should have flagged scored 0/3 |
+| gate C | lost the parser directory it depends on and reported `0/0 checks reject a plausible impostor, 0 FAKE`, **exit 0** — which selftest called clean on every spec, because `0 == 0` |
+
+```console
+$ sett blind
+== blind: break the world, demand a complaint ==
+
+  OK    gate C, parser removed             exits 2
+  OK    selftest, gate C empty             fails and names gate C
+  OK    rot, dead path behind $CORPUS      exits 1, 37 paths audited
+  OK    lint, unexplained schema           1 finding(s) on a novel table
+  OK    leak, planted self-read            fires on the plant (exit 1), clean without
+
+blind: PASS — 5 instrument(s) complained when the world broke
+```
+
+Not one of the three was found by reading code. Each was found by **deliberately
+breaking the world and noticing the silence** — a negative control aimed at the
+tools instead of at the model.
+
+The first version of that very test was itself blind, twice: its `leak` case
+grepped for `read its own`, which appears verbatim in leak's *clean* message
+"no run read its own spec", so it passed regardless; and its control arm created
+the fixture directory after the call, so leak exited 0 via "directory missing"
+rather than an empty scan. Both found by running it.
+
+**Zero of zero is not a pass.**
 
 ---
 
