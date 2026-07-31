@@ -203,3 +203,29 @@ are equally capable; the gym scores measure that, and they differ.
 
 What it does say is that the mouth doing the checking ran at 68% too. Neither
 rate is good enough, which is the argument for instruments over trying harder.
+
+**tautological check** — a check whose two sides have the same author and the
+same representation, so agreement was guaranteed before it ran. Operator's
+phrase: **"you say a = a happens."**
+
+It was found in a set of "receipts" printed alongside query results: the tool
+counted KEV rows where `knownRansomwareCampaignUse == "Known"` and got 332, and
+the receipt counted KEV rows where `knownRansomwareCampaignUse == "Known"` and
+got 332. Same data, same predicate, same hand. It catches a transcription slip
+and nothing else, while looking exactly like verification.
+
+This sharpens a rule the repo had been following without stating:
+
+> **A check is real only when its two paths differ in author or in
+> representation.**
+
+The gym checks satisfy it — the *model* writes one path and the *operator*
+writes the other, and they can genuinely disagree. That is why a gym score
+means something. A receipt written by the same hand that produced the answer
+satisfies neither, and is the existence test wearing a lab coat.
+
+Two ways to earn a real check: **different author** (model vs operator, as in
+every `.probe`), or **different representation** — e.g. answering the same
+question from the 51 MB STIX JSON *and* from the 63 MB SQLite index, which were
+built independently. Agreement across those is evidence. Agreement with
+yourself is not.
