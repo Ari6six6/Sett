@@ -75,10 +75,18 @@ sett rot                                 # every path this repo asserts — do y
 sett selftest                            # are the gates real? 85s, no GPU, no model
 ```
 
-> **This is one operator's den, not a package.** The specs name absolute paths
-> on my box, so on yours `sett rot` will list every one that is missing before
-> you waste a GPU hour finding out. That makes porting a checklist rather than
-> an archaeology dig, but it is still a port.
+Specs name `$SETT/...` and `$CORPUS/...`, never one operator's home directory,
+so the corpus can live wherever you keep it:
+
+```sh
+export SETT_CORPUS=/wherever/you/put/it     # default: the path corpus/fetch.sh writes
+sett rot                                     # every path the repo asserts — do you have it?
+```
+
+> `sett rot` still names every path that is missing on **your** box before you
+> waste a GPU hour finding out, and it expands the variables to do it — an
+> audit that goes blind when you make paths portable is worse than no audit,
+> because it keeps printing the same reassuring word.
 
 `sett selftest` is the honest first command. It runs every gate against every
 spec **without a model and without a GPU** — it is what to run before believing
@@ -105,9 +113,13 @@ not quietly fall back to a cloud model and let you think otherwise.
 
 ```
 ## 11 stix-bytes
-do:    Write only the byte size of /path/to/enterprise-attack-stix21.json to $OUT/11.txt
-check: test "$(tr -d '[:space:]' < "$OUT/11.txt")" = "$(stat -c%s /path/to/enterprise-attack-stix21.json)"
+do:    Write only the byte size of $CORPUS/enterprise-attack-stix21.json to $OUT/11.txt
+check: test "$(tr -d '[:space:]' < "$OUT/11.txt")" = "$(stat -c%s $CORPUS/enterprise-attack-stix21.json)"
 ```
+
+`$OUT`, `$SETT` and `$CORPUS` are expanded before the model ever sees the text,
+so the same gym runs on a box that keeps its data somewhere else.
+`sett prompts <spec>` prints exactly what gets sent.
 
 The operator writes `do:` and `check:`. The model is handed `do:` and **never**
 `check:` — a model that can read the gate can teach to it. One fresh process
@@ -235,6 +247,7 @@ sett report <spec>           write REPORT.md
 # the instruments
 sett selftest [--fast]       every gate on every spec — is the instrument sound?
 sett gate <spec>             mutation-test the CHECKS (--wrong, --broken)
+sett prompts <spec>          the exact text the model receives, expanded
 sett check <spec> [--out D]  re-run every check, read-only, no model
 sett lint <spec>             operator defects that read as model failures
 sett rot                     every path and verb this repo asserts — still real?

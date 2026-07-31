@@ -21,6 +21,15 @@ SETT_TMP=""
 BASE_URL="${SETT_BASE_URL:-http://localhost:8080}"
 MODEL="${SETT_MODEL:-}"
 POINT_TIMEOUT="${SETT_TIMEOUT:-300}"
+
+# Where the corpora live. Specs say $CORPUS/kev/... rather than naming one
+# operator's home directory, so the same gym text runs on a box that keeps its
+# data somewhere else. $SETT is the repo root, resolved above.
+#
+# These are expanded in do: exactly as $OUT is, and exported to check: exactly
+# as OUT is. A spec that hardcodes an absolute home path still works — it is
+# just not portable, and `sett rot` will say so on a machine that lacks it.
+CORPUS="${SETT_CORPUS:-/home/michael/lab/structured-data/raw}"
 CHECK_TIMEOUT="${SETT_CHECK_TIMEOUT:-60}"
 
 die() { echo "sett: $*" >&2; exit 2; }
@@ -48,7 +57,11 @@ spec_path() {
 }
 
 spec_header() { # spec_header <file> <key>
-  sed -n "s/^#[[:space:]]*$2:[[:space:]]*//p" "$1" | head -1
+  # $SETT and $CORPUS are expanded here rather than at each of the four call
+  # sites, so `# out: $SETT/out/<name>` works everywhere a header is read.
+  local v; v="$(sed -n "s/^#[[:space:]]*$2:[[:space:]]*//p" "$1" | head -1)"
+  v="${v//\$SETT/$SETT_ROOT}"; v="${v//\$CORPUS/$CORPUS}"
+  printf '%s\n' "$v"
 }
 
 # Emits one TSV line per point: id \t slug \t do \t check   (fields \n-escaped)
@@ -104,7 +117,19 @@ record() { # record <statefile> <id> <verdict> <note>
 # Runs a check with OUT bound. Returns the check's exit code.
 run_check() { # run_check <check> <outdir>
   local check="$1" out="$2"
-  OUT="$out" timeout "$CHECK_TIMEOUT" bash -c "$check" >/dev/null 2>&1
+  # Substituted textually, NOT left to the environment. Most checks embed their
+  # path inside a single-quoted python one-liner, and bash does not expand
+  # anything inside single quotes — so an exported SETT= would arrive at the
+  # check as the literal four characters $SETT and the check would fail on a
+  # correct artifact. Found by gate B: the reference implementations stopped
+  # passing the moment $SETT was introduced.
+  check="${check//\$SETT/$SETT_ROOT}"
+  check="${check//\$CORPUS/$CORPUS}"
+  # OUT stays an export as well as a substitution: checks have always used it
+  # as "$OUT" in double quotes, and both paths must keep working.
+  check="${check//\$OUT/$out}"
+  OUT="$out" SETT="$SETT_ROOT" CORPUS="$CORPUS" \
+    timeout "$CHECK_TIMEOUT" bash -c "$check" >/dev/null 2>&1
 }
 
 # ------------------------------------------------------------------ safety net
@@ -123,7 +148,7 @@ cmd_new() {
   local name="${1:-}"; [ -n "$name" ] || die "usage: sett new <name>"
   local f="$SPECS/$name.probe"
   [ -e "$f" ] && die "exists: $f"
-  local out="$SETT_ROOT/out/$name"
+  local out="\$SETT/out/$name"
   cat > "$f" <<EOF
 # spec: $name
 # out:  $out
@@ -202,6 +227,8 @@ cmd_run() {
     local task check
     task="$(unesc "$d")"; check="$(unesc "$c")"
     task="${task//\$OUT/$out}"
+    task="${task//\$SETT/$SETT_ROOT}"
+    task="${task//\$CORPUS/$CORPUS}"
 
     printf '%-5s %-28s ' "$id" "${slug:0:28}"
 
@@ -234,6 +261,44 @@ cmd_run() {
   local scored; scored="$(awk -F'\t' '{v[$2]=$3} END {n=0; for (k in v) if (v[k]=="PASS") n++; print n+0}' "$sf")"
   run_row DONE "$scored/$total"
   cmd_report "$spec" >/dev/null
+}
+
+# -------------------------------------------------------------- verb: prompts
+# Print the exact text a model receives for each point, after $OUT, $SETT and
+# $CORPUS are expanded.
+#
+# This exists to make one specific claim checkable. Replacing a hardcoded
+# /home/michael/... path with $CORPUS/... changes the spec FILE, and therefore
+# its spec@ hash, and therefore `sett score` marks every score recorded against
+# it as no longer comparable. That flag is right in general and wrong here: the
+# rendered prompt is byte-identical, so the measurement did not move.
+#
+# Rather than assert that, render both versions and diff them:
+#
+#   git stash && sett prompts code-10 > /tmp/before
+#   git stash pop && sett prompts code-10 > /tmp/after
+#   diff /tmp/before /tmp/after     # empty = the model saw the same words
+#
+# A refactor you cannot prove was cosmetic is not a refactor, it is a rewrite.
+cmd_prompts() {
+  local spec="${1:-}"; [ -n "$spec" ] || die "usage: sett prompts <spec> [--checks]"
+  local want_checks=0; [ "${2:-}" = "--checks" ] && want_checks=1
+  local f out
+  f="$(spec_path "$spec")"
+  out="$(spec_header "$f" out)"
+  while IFS=$'\t' read -r id slug d c; do
+    [ -n "$id" ] || continue
+    local task check
+    task="$(unesc "$d")"
+    task="${task//\$OUT/$out}"; task="${task//\$SETT/$SETT_ROOT}"; task="${task//\$CORPUS/$CORPUS}"
+    printf '## %s %s\n%s\n' "$id" "$slug" "$task"
+    if [ "$want_checks" -eq 1 ]; then
+      check="$(unesc "$c")"
+      check="${check//\$OUT/$out}"; check="${check//\$SETT/$SETT_ROOT}"; check="${check//\$CORPUS/$CORPUS}"
+      printf 'check: %s\n' "$check"
+    fi
+    printf '\n'
+  done < <(parse_spec "$f")
 }
 
 # --------------------------------------------------------------- verb: verify
@@ -613,6 +678,7 @@ sett — the brain proposes, the captain disposes, the ledger makes faith obsole
   the ledger
     sett gym <spec> [flags]      run pending points (fresh process each)
         --only ID  --from ID  --retry  --model M  --law FILE
+    sett prompts <spec> [--checks]  the exact text the model receives
     sett check <spec> [--out D]  re-run every check, read-only, no model
                                  --out re-verifies an ARCHIVED run in place
     sett gate <spec>             mutation-test the CHECKS (catches fake gates)
@@ -645,6 +711,7 @@ case "${1:-}" in
            if [ -z "$MODEL" ]; then m="$(require_body)"; MODEL="km-box/$m"; fi
            cmd_run "$@" --model "$MODEL" ;;
   check)   shift; cmd_verify "$@" ;;
+  prompts) shift; cmd_prompts "$@" ;;
   gate)    shift
            # --wrong runs gate C instead: plant a plausible impostor and
            # demand the check still fails. Gate A asks "is it absent",

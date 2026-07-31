@@ -1,5 +1,5 @@
 # spec: flash-100-core
-# out:  /home/michael/SETT-repo/out/flash-100
+# out:  $SETT/out/flash-100
 # bar:  20
 #
 # Retro-fit of machine checks onto the GOLD (flash-100, 2026-07-29).

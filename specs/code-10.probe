@@ -1,5 +1,5 @@
 # spec: code-10
-# out:  /home/michael/SETT-repo/out/code-10
+# out:  $SETT/out/code-10
 #
 # The coding gym. Same four fields as every other spec — the only difference is
 # that `check:` runs a hidden test suite instead of comparing a value.
@@ -38,23 +38,23 @@ except KeyError: pass'
 
 ## 5 kev-count-lib
 do:    Write a Python file $OUT/5.py defining ransomware_count(path) which loads the CISA KEV JSON at `path` and returns how many entries under "vulnerabilities" have knownRansomwareCampaignUse equal to "Known".
-check: python3 -c 'import importlib.util,os,json;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/5.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);P="/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json";d=json.load(open(P));e=sum(1 for v in d["vulnerabilities"] if v.get("knownRansomwareCampaignUse")=="Known");assert m.ransomware_count(P)==e, "wrong count"'
+check: python3 -c 'import importlib.util,os,json;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/5.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);P="$CORPUS/kev/known_exploited_vulnerabilities.json";d=json.load(open(P));e=sum(1 for v in d["vulnerabilities"] if v.get("knownRansomwareCampaignUse")=="Known");assert m.ransomware_count(P)==e, "wrong count"'
 
 ## 6 kev-to-csv
 do:    Write a Python file $OUT/6.py defining to_csv(path) which loads the CISA KEV JSON at `path` and returns a CSV string. First line must be the header cveID,vendorProject,product — then one line per vulnerability in file order. Use the csv module so values containing commas are quoted correctly.
-check: python3 -c 'import importlib.util,os,json,csv,io;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/6.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);P="/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json";out=m.to_csv(P);r=list(csv.reader(io.StringIO(out)));d=json.load(open(P))["vulnerabilities"];assert r[0]==["cveID","vendorProject","product"], r[0];assert len(r)-1==len(d), (len(r)-1,len(d));assert r[1][0]==d[0]["cveID"];assert r[-1][0]==d[-1]["cveID"]'
+check: python3 -c 'import importlib.util,os,json,csv,io;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/6.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);P="$CORPUS/kev/known_exploited_vulnerabilities.json";out=m.to_csv(P);r=list(csv.reader(io.StringIO(out)));d=json.load(open(P))["vulnerabilities"];assert r[0]==["cveID","vendorProject","product"], r[0];assert len(r)-1==len(d), (len(r)-1,len(d));assert r[1][0]==d[0]["cveID"];assert r[-1][0]==d[-1]["cveID"]'
 
 ## 7 stix-histogram-lib
 do:    Write a Python file $OUT/7.py defining type_histogram(path, n) which loads a STIX bundle JSON at `path` and returns a list of (type, count) tuples for the n most common values of the "type" field across the "objects" array, most common first.
-check: python3 -c 'import importlib.util,os,json,collections;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/7.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);P="/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json";o=json.load(open(P))["objects"];e=collections.Counter(x["type"] for x in o).most_common(3);g=[tuple(x) for x in m.type_histogram(P,3)];assert g==e, (g,e)'
+check: python3 -c 'import importlib.util,os,json,collections;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/7.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);P="$CORPUS/enterprise-attack-stix21.json";o=json.load(open(P))["objects"];e=collections.Counter(x["type"] for x in o).most_common(3);g=[tuple(x) for x in m.type_histogram(P,3)];assert g==e, (g,e)'
 
 ## 8 stix-resolve-refs
 do:    Write a Python file $OUT/8.py defining group_software(path, group_name) which loads a STIX bundle and returns a sorted list of distinct names of malware or tool objects that the intrusion-set named group_name "uses". Resolve relationship objects via source_ref and target_ref.
-check: python3 -c 'import importlib.util,os,json;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/8.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);P="/home/michael/lab/structured-data/raw/enterprise-attack-stix21.json";o=json.load(open(P))["objects"];b={x["id"]:x for x in o};e=sorted({b[r["target_ref"]]["name"] for r in o if r["type"]=="relationship" and r["relationship_type"]=="uses" and r.get("source_ref") in b and r.get("target_ref") in b and b[r["source_ref"]]["type"]=="intrusion-set" and b[r["source_ref"]].get("name")=="APT29" and b[r["target_ref"]]["type"] in ("malware","tool")});g=sorted(m.group_software(P,"APT29"));assert g==e, (len(g),len(e))'
+check: python3 -c 'import importlib.util,os,json;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/8.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);P="$CORPUS/enterprise-attack-stix21.json";o=json.load(open(P))["objects"];b={x["id"]:x for x in o};e=sorted({b[r["target_ref"]]["name"] for r in o if r["type"]=="relationship" and r["relationship_type"]=="uses" and r.get("source_ref") in b and r.get("target_ref") in b and b[r["source_ref"]]["type"]=="intrusion-set" and b[r["source_ref"]].get("name")=="APT29" and b[r["target_ref"]]["type"] in ("malware","tool")});g=sorted(m.group_software(P,"APT29"));assert g==e, (len(g),len(e))'
 
 ## 9 cli-tool
 do:    Write an executable bash script $OUT/9.sh taking one argument, a path to the CISA KEV JSON. It must print exactly two lines: "total: N" then "ransomware: M", where N is the number of vulnerabilities and M the count with knownRansomwareCampaignUse equal to "Known". Exit 2 with a message on stderr if given no argument.
-check: bash -c 'set -e;P="/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json";read -r n r < <(python3 -c "import json;d=json.load(open(\"$P\"));print(len(d[\"vulnerabilities\"]),sum(1 for v in d[\"vulnerabilities\"] if v.get(\"knownRansomwareCampaignUse\")==\"Known\"))");out=$(bash "$OUT/9.sh" "$P");[ "$(printf "%s" "$out" | sed -n 1p)" = "total: $n" ];[ "$(printf "%s" "$out" | sed -n 2p)" = "ransomware: $r" ];if bash "$OUT/9.sh" >/dev/null 2>&1; then exit 1; fi'
+check: bash -c 'set -e;P="$CORPUS/kev/known_exploited_vulnerabilities.json";read -r n r < <(python3 -c "import json;d=json.load(open(\"$P\"));print(len(d[\"vulnerabilities\"]),sum(1 for v in d[\"vulnerabilities\"] if v.get(\"knownRansomwareCampaignUse\")==\"Known\"))");out=$(bash "$OUT/9.sh" "$P");[ "$(printf "%s" "$out" | sed -n 1p)" = "total: $n" ];[ "$(printf "%s" "$out" | sed -n 2p)" = "ransomware: $r" ];if bash "$OUT/9.sh" >/dev/null 2>&1; then exit 1; fi'
 
 ## 10 spec-linter
 do:    Write a Python file $OUT/10.py defining lint(path) which reads a SETT .probe spec file and returns a list of point ids (strings) that are missing a "check:" field. A point header looks like "## 3 my-slug": the id is the FIRST whitespace-separated token after "## " and the rest of the line is a slug you ignore. A point runs from its header to the next "## " header or end of file; if no "check:" line appears in that span, its id belongs in the result. Return an empty list when every point has a check.
@@ -62,4 +62,4 @@ check: python3 -c 'import importlib.util,os,tempfile;s=importlib.util.spec_from_
 g=tempfile.mktemp();pathlib.Path(g).write_text(good);b=tempfile.mktemp();pathlib.Path(b).write_text(bad)
 assert m.lint(g)==[], m.lint(g)
 assert sorted(str(x) for x in m.lint(b))==["2","3"], m.lint(b)
-assert m.lint("/home/michael/SETT-repo/fixtures/specs/sample-12.probe")==[]'
+assert m.lint("$SETT/fixtures/specs/sample-12.probe")==[]'

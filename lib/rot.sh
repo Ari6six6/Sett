@@ -42,10 +42,18 @@ is_output() { case "$1" in "$PWD"/out/*|/home/michael/SETT-repo/out/*) return 0 
 
 total=0; missing=0; skipped=0
 
+# Portability made rot BLIND. The moment specs said $CORPUS/kev/... instead of
+# /home/michael/lab/..., this audit stopped seeing them: the count fell from 31
+# paths to 13 and still reported "clean". An audit that silently narrows its own
+# scope is worse than no audit, because it keeps printing the same reassuring
+# word. So expand the variables before matching, exactly as sett does.
+expand() { sed -e "s|\$SETT|$PWD|g" -e "s|\$CORPUS|$CORPUS_DIR|g"; }
+CORPUS_DIR="${SETT_CORPUS:-/home/michael/lab/structured-data/raw}"
+
 audit_file() {
   local f="$1" shown=0
   # strip trailing punctuation that regex-grabs off prose and code
-  grep -ohE '/home/[A-Za-z0-9_./-]+' "$f" 2>/dev/null \
+  expand < "$f" 2>/dev/null | grep -ohE '/home/[A-Za-z0-9_./-]+' \
     | sed 's/[`",);:.]*$//' | sort -u | while read -r p; do
       [ -n "$p" ] || continue
       [ "$p" = "/home" ] || [ "$p" = "/home/." ] && continue
@@ -76,7 +84,7 @@ hits="$(for f in $INSTRUCTING specs/*.probe; do
         done)"
 
 allpaths="$(for f in $INSTRUCTING specs/*.probe; do
-              [ -f "$f" ] && grep -ohE '/home/[A-Za-z0-9_./-]+' "$f" 2>/dev/null
+              [ -f "$f" ] && expand < "$f" 2>/dev/null | grep -ohE '/home/[A-Za-z0-9_./-]+' 
             done | sed 's/[`",);:.]*$//' | sort -u | grep -v '^/home/\.$' | grep -v '^/home$')"
 total="$(printf '%s' "$allpaths" | grep -c . || true)"
 

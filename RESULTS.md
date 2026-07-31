@@ -633,3 +633,39 @@ sett ab <spec> <n> <A> <B>  # n runs per arm before believing a difference
 `smoke-3` 3/3 real, `analyst-12` 12/12 real, `flash-100-core` 23/23 real
 **on gate A**. Gate C, written later, puts flash-100-core at **22/23** — see
 the correction below.
+
+---
+
+## Note on the portability refactor (2026-07-31, after the flight)
+
+Every live spec was rewritten to say `$SETT/...` and `$CORPUS/...` instead of
+`/home/michael/...`. That moves each spec's `spec@` hash, so `sett score` marks
+today's scores as earned against a gym text that no longer exists.
+
+**The flag is correct in general and wrong in this instance**, and that claim is
+settled mechanically rather than asserted. `sett prompts <spec> --checks`
+renders the exact text a model receives after expansion; captured before and
+after the rewrite, all five live specs diff **byte-identical**. The file
+changed; the prompt did not; the numbers above still mean what they say.
+
+Proof that `$CORPUS` is load-bearing rather than decorative, by relocating it:
+
+```
+corpus at a different path   sett check code-10 --out reference/  ->  10/10 PASS
+corpus pointed at nothing    sett check code-10 --out reference/  ->   5/10 PASS
+```
+
+Exactly the five data points fail. A variable that changes nothing when you
+break it was never wired up.
+
+**Two defects the refactor introduced, both caught and fixed:**
+
+- Binding `SETT=` in the environment was not enough. Most checks embed their
+  path inside a single-quoted python one-liner, where bash expands nothing, so
+  the check received the literal four characters `$SETT`. Gate B found it
+  immediately: every reference implementation stopped passing.
+- `sett rot` went **blind**. It greps for `/home/...`, the specs no longer say
+  that, and its coverage fell from 31 asserted paths to 13 while still printing
+  `clean`. An audit that silently narrows its own scope is worse than no audit.
+  Rot now expands the variables first; a deliberately planted dead `$CORPUS`
+  path is caught through them, and reported fully resolved.

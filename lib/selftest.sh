@@ -104,13 +104,14 @@ sett gate|./sett gate code-10
 sett gate --wrong|./sett gate code-10 --wrong
 sett gate --broken|./sett gate debug-7 --broken
 sett lint|./sett lint code-10
+sett prompts|./sett prompts code-10
 sett rot|./sett rot
 sett leak|./sett leak
 sett report|./sett report code-10
 VERBS
 # an unknown verb MUST die rather than silently succeed
 ./sett definitely-not-a-verb >/dev/null 2>&1 && { say "  ! unknown verb did not die"; vfail=$((vfail+1)); }
-if [ "$vfail" -eq 0 ]; then say "verbs clean (15 verbs run; unknown verb dies)"; else fail=$((fail+vfail)); fi
+if [ "$vfail" -eq 0 ]; then say "verbs clean (16 verbs run; unknown verb dies)"; else fail=$((fail+vfail)); fi
 
 r="$(./sett rot --quiet >/dev/null 2>&1; echo $?)"
 if [ "$r" -eq 0 ]; then say "rot   clean"; else say "rot   ROT PRESENT"; fail=$((fail+1)); fi

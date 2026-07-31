@@ -167,3 +167,26 @@ detector.**
 If you keep only three: **inversion**, **existence test**, **noisy**.
 
 Everything else in this repository is machinery for catching those.
+
+---
+
+## Added after the fact
+
+**`$SETT` / `$CORPUS`** — the repo root and the corpus root, expanded in `do:`,
+`check:` and the `out:` header before the model or the check ever sees them.
+Specs name these instead of one operator's home directory. `sett prompts`
+prints the result.
+
+**cosmetic refactor** — a change to a spec *file* that provably does not change
+the *rendered prompt*. Replacing a hardcoded path with `$CORPUS` moves the
+`spec@` hash, so `sett score` flags every score recorded against it — correctly
+in general, wrongly here. The claim is settled by rendering both versions and
+diffing, never by assertion. **A refactor you cannot prove was cosmetic is not
+a refactor, it is a rewrite.**
+
+**blind audit** — an audit that silently narrows its own scope. Making the
+specs portable took `sett rot` from 31 asserted paths to 13 and it still
+printed `clean`, because it was grepping for `/home/...` and the paths now said
+`$CORPUS/...`. Worse than no audit: no audit is honestly silent, a blind one
+keeps saying the reassuring word. Now rot expands the variables first, and a
+planted dead path is caught through them.

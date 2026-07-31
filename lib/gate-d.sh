@@ -38,10 +38,15 @@ spec=open(sys.argv[1]).read()
 for b in re.split(r'(?m)^## ',spec)[1:]:
     pid=b.split(None,1)[0]
     do=" ".join(l[3:] for l in b.splitlines() if l.startswith("do:"))
-    br=re.search(r'(/home/michael/SETT-repo/fixtures/broken/[A-Za-z0-9_.\-]+)',do)
+    # Match the fixture by its repo-relative tail, not by one operator's home
+    # directory. Specs now say $SETT/fixtures/broken/x.py; before portability
+    # they said /home/michael/SETT-repo/fixtures/broken/x.py. Both must work,
+    # and neither should be spelled out here — this ran as n/a for exactly one
+    # selftest after the refactor, which is one more than it should have.
+    m=re.search(r'fixtures/broken/([A-Za-z0-9_.\-]+)',do)
     art=re.search(r'\$OUT/([0-9]+\.[a-z]+)',do)
-    if br and art:
-        print(f"{pid}\t{br.group(1)}\t{art.group(1)}")
+    if m and art:
+        print(f"{pid}\tfixtures/broken/{m.group(1)}\t{art.group(1)}")
 PY
 )
 
