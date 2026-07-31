@@ -71,7 +71,6 @@ git clone https://github.com/Ari6six6/Sett && cd Sett
 ln -s "$PWD/sett" ~/.local/bin/sett     # bash + coreutils + python3, nothing else
 
 corpus/fetch.sh                          # the three public datasets the checks grip on
-sett rot                                 # every path this repo asserts — do you have it?
 sett selftest                            # are the gates real? 85s, no GPU, no model
 ```
 
@@ -156,7 +155,7 @@ flash-100-core   23/23     none      22/23     n/a       12
 smoke-3          3/3       none      3/3       n/a       0
 stix-graph-12    12/12     12/12     12/12     n/a       0
 
-verbs clean (15 verbs run; unknown verb dies)
+verbs clean (16 verbs run; unknown verb dies)
 rot   clean
 leak  clean (no run read its own spec today)
 ```
