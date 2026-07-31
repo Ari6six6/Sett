@@ -669,3 +669,32 @@ break it was never wired up.
   `clean`. An audit that silently narrows its own scope is worse than no audit.
   Rot now expands the variables first; a deliberately planted dead `$CORPUS`
   path is caught through them, and reported fully resolved.
+
+---
+
+## What the model DID, not just what it scored (2026-07-31)
+
+`sett behave` reads `pi`'s own transcripts — every tool call, every thinking
+block — across 257 point-runs. A score says whether a point passed. This says
+how, and the two do not always agree.
+
+| gym | read-first | verify | one-shot | median steps |
+|---|---|---|---|---|
+| `debug-7` | **95%** | 71% | 24% | 10 |
+| `code-sett-8` | 28% | **83%** | 7% | 8 |
+| `stix-graph-12` | 81% | 28% | **72%** | **16** |
+| `code-10` | 6% | 59% | 13% | 8 |
+
+**`debug-7` is the only gym where the model reads its input almost every time**
+— 20 of 21 runs. That is the same gym that produced the only two timeouts of
+the day. Repair forces a read before a write, and the reading is what costs the
+clock. The 62% score and the `pi exit 124` errors are the same fact seen twice.
+
+**`stix-graph-12` is the opposite shape**: the most steps of any gym (median
+16), yet 72% one-shot and only 28% verifying. It spends its budget hunting
+through a 53 MB bundle, then writes once and does not look back — and still
+averages 9/12. High effort, low self-checking, decent score.
+
+None of this is visible in a pass count, and none of it changes one. It is
+recorded because behaviour is the thing that predicts where the next failure
+comes from, and a ledger that only stores verdicts throws it away.

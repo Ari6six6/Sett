@@ -731,6 +731,8 @@ case "${1:-}" in
   leak)    shift; exec "$SETT_ROOT/lib/leak.sh" "$@" ;;
   ab)      shift; exec "$SETT_ROOT/lib/ab.sh" "$@" ;;
   runs)    shift; exec "$SETT_ROOT/lib/runs.sh" "$@" ;;
+  behave)  shift; exec "$SETT_ROOT/lib/behave.py" "$@" ;;
+  work)    shift; exec "$SETT_ROOT/lib/work.sh" "$@" ;;
   score)   shift; cmd_score "$@" ;;
   new)     shift; cmd_new "$@" ;;
   status)  shift; cmd_status "$@" ;;

@@ -280,7 +280,7 @@ clothes you can grip.
 ```
 sett            the program. one file of bash.
 specs/          gyms. one bounded task, one artifact path, one machine check.
-lib/            the instruments sett calls: gates, rot, lint, leak, ab, selftest.
+lib/            the instruments sett calls: gates, rot, lint, leak, ab, behave, selftest.
 corpus/         manifests and fetch.sh for the data the checks grip on.
 fixtures/       frozen inputs. the ground that cannot move.
 reference/      a working implementation per gym — gate B's answer key.

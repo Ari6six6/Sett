@@ -1,3 +1,8 @@
+# RETIRED 2026-07-31 — superseded by gate-c.sh, which does the same
+# mutation test generically for every spec instead of only for the
+# flash-100 point ids hardcoded below. Kept unrunnable rather than
+# deleted: it is the ancestor of gate C and the first place the
+# 'wrong-but-present artifact' idea was written down.
 #!/usr/bin/env bash
 # gate-test — can the local model write a GATE?
 #
