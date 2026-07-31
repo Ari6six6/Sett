@@ -389,6 +389,42 @@ ruler after the measurement is the exact failure this document exists to
 prevent. They stand as the historical record they are, with this caveat
 attached. New gyms name their inputs.
 
+### debug-7 — the repair gym (built, gated, NOT YET RUN)
+
+Every other gym asks the model to write fresh code. `debug-7` hands it broken
+code and asks for a fix, which is most of what a coding assistant actually
+does and which nothing here measured.
+
+Every broken file is real: seven artifacts GLM-4.7-Flash wrote on this box on
+2026-07-30, each of which failed its own gym point. Frozen under
+`fixtures/broken/`, confirmed still broken in the specific way each point
+describes:
+
+| point | the real bug |
+|---|---|
+| 1 | annotated `path: Path`, called `path.read_text()` on a str |
+| 2 | read `parts[0]`/`parts[1]` as id/verdict — they are timestamp/id — returns all zeros |
+| 3 | correct docstring, counted every line instead of grouping by id |
+| 4 | point-matching regex matches nothing, returns 0.0 |
+| 5 | found 4 of 12 checks |
+| 6 | returned `""` for an empty list instead of the header |
+| 7 | called `jq` (not installed) and indexed the JSON as a list |
+
+Graded by the **same checks** the original points used, so a score here is
+directly comparable to the score the broken file earned.
+
+**Gate D, new for this gym type.** A repair gym has a failure mode the other
+gates cannot see: if the broken input would itself pass, the point is solvable
+by copying the input, and the gym measures `cp`. `sett gate <spec> --broken`
+plants each broken file as the artifact and demands the check fail.
+
+Gates: **A 7/7 · B 7/7 · C 7/7 · D 0/7 broken inputs pass · lint 0.**
+Gate D was itself negative-controlled: planting a correct implementation where
+a broken one belongs makes it exit 1.
+
+**It has not been run.** There is no score here and will not be until a box
+runs it.
+
 ## Verdict so far
 
 A 30B-class local model does the work and cannot certify the work.

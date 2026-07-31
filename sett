@@ -515,6 +515,7 @@ sett — the brain proposes, the captain disposes, the ledger makes faith obsole
                                  --out re-verifies an ARCHIVED run in place
     sett gate <spec>             mutation-test the CHECKS (catches fake gates)
         --wrong                  also reject a plausible WRONG artifact (gate C)
+        --broken                 repair gyms: the BROKEN input must fail (gate D)
     sett rot                     every path the repo asserts — does it exist?
     sett lint <spec>             operator defects that read as model failures
     sett leak [since]            did any run read the spec with its own checks?
@@ -544,6 +545,10 @@ case "${1:-}" in
            # --wrong runs gate C instead: plant a plausible impostor and
            # demand the check still fails. Gate A asks "is it absent",
            # gate C asks "is it wrong". A spec wants both.
+           if [ "${2:-}" = "--broken" ] || [ "${1:-}" = "--broken" ]; then
+             set -- $(printf '%s\n' "$@" | grep -v -- '--broken')
+             exec "$SETT_ROOT/gate-d.sh" "$@"
+           fi
            if [ "${2:-}" = "--wrong" ] || [ "${1:-}" = "--wrong" ]; then
              set -- $(printf '%s\n' "$@" | grep -v -- '--wrong')
              exec "$SETT_ROOT/gate-c.sh" "$@"

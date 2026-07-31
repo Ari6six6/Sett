@@ -145,6 +145,7 @@ something that can move.** Hence `fixtures/`, and hence:
 | tool | question it asks | what it caught |
 |---|---|---|
 | `sett gate` | is the check fake — does it pass with **no** artifact? | four fake checks at authoring time |
+| `sett gate --broken` | repair gyms: does the **broken input** pass? | (new — gates `debug-7`) |
 | `gate-c.sh` | does it pass on a **wrong-but-present** artifact? | `smoke-3` point 3 |
 | `rot.sh` | does every path the repo **asserts** still exist? | the dead law pointer |
 | `ab.sh` | is this difference **real**, or is it one run's luck? | a 6/8-vs-4/8 "result" that was noise |

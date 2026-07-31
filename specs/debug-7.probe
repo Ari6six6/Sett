@@ -1,0 +1,48 @@
+# spec: debug-7
+# out:  /home/michael/SETT-repo/out/debug-7
+#
+# The repair gym. Every other gym asks the model to write fresh code. This one
+# hands it BROKEN code and asks for a fix — which is most of what a coding
+# assistant actually does, and which nothing here measured until now.
+#
+# Every broken file is real. Each was written by GLM-4.7-Flash on this box on
+# 2026-07-30 and each failed its own gym point. They are frozen under
+# fixtures/broken/ and confirmed still broken, in the specific way each point
+# describes.
+#
+# Writing code and repairing code are different skills. A model can be fluent
+# at the first and useless at the second — it has to read what is there rather
+# than emit what it would have written. These points are graded by the SAME
+# checks the original points used, so a score here is directly comparable to
+# the score the broken file earned.
+#
+# Every point names its input file and states the full contract, because a
+# repair task that leaves the contract vague is measuring guesswork.
+
+## 1 fix-path-type
+do:    /home/michael/SETT-repo/fixtures/broken/latest-path-type.py defines latest(path) and crashes with AttributeError: 'str' object has no attribute 'read_text'. Read it, find the bug, and write a corrected version to $OUT/1.py. Contract: latest(path), where path is a str filesystem path, reads a SETT state.tsv — tab-separated columns timestamp, id, verdict, note — and returns a dict mapping each id to its LAST verdict in file order. Later lines override earlier ones for the same id. An empty file returns an empty dict. Keep the working parts; change only what is wrong.
+check: python3 -c 'import importlib.util,os,tempfile,pathlib;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/1.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);p=tempfile.mktemp();pathlib.Path(p).write_text("t1\t1\tFAIL\tx\nt2\t2\tPASS\t\nt3\t1\tPASS\t\n");r=m.latest(p);assert r=={"1":"PASS","2":"PASS"}, r;q=tempfile.mktemp();pathlib.Path(q).write_text("");assert m.latest(q)=={}'
+
+## 2 fix-wrong-columns
+do:    /home/michael/SETT-repo/fixtures/broken/summary-wrong-columns.py defines summary(path) and returns all zeros for every input. It reads the wrong tab-separated fields. Read it, find the bug, and write a corrected version to $OUT/2.py. Contract: the file has columns timestamp, id, verdict, note in that order. summary(path) returns a dict with keys "pass", "fail", "error" counting how many ids have that verdict as their LAST recorded verdict. Group by id first: an id with three lines contributes exactly one count, using its last line. Verdicts are upper-case PASS, FAIL, ERROR. path is a str.
+check: python3 -c 'import importlib.util,os,tempfile,pathlib;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/2.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);p=tempfile.mktemp();pathlib.Path(p).write_text("t\t1\tFAIL\t\nt\t1\tPASS\t\nt\t2\tERROR\t\nt\t3\tFAIL\t\n");r=m.summary(p);assert r["pass"]==1 and r["fail"]==1 and r["error"]==1, r;assert m.summary("/home/michael/SETT-repo/fixtures/state-3pass.tsv")["pass"]==3'
+
+## 3 fix-no-grouping
+do:    /home/michael/SETT-repo/fixtures/broken/summary-no-grouping.py defines summary(path). Its docstring says it counts each id's LAST verdict, but the code counts every line, so an id appearing three times is counted three times. Read it, find the bug, and write a corrected version to $OUT/3.py. Contract: columns are timestamp, id, verdict, note. Return a dict with keys "pass", "fail", "error" counting how many ids have that verdict as their LAST recorded verdict, one count per id. Verdicts are upper-case PASS, FAIL, ERROR. path is a str.
+check: python3 -c 'import importlib.util,os,tempfile,pathlib;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/3.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);p=tempfile.mktemp();pathlib.Path(p).write_text("t\t1\tFAIL\t\nt\t1\tPASS\t\nt\t2\tERROR\t\nt\t3\tFAIL\t\n");r=m.summary(p);assert r["pass"]==1 and r["fail"]==1 and r["error"]==1, r;assert m.summary("/home/michael/SETT-repo/fixtures/state-3pass.tsv")["pass"]==3'
+
+## 4 fix-regex-matches-nothing
+do:    /home/michael/SETT-repo/fixtures/broken/grounded-regex-empty.py defines grounded_ratio(path) and returns 0.0 for every spec because its point-matching regex matches nothing. Read it, find the bug, and write a corrected version to $OUT/4.py. Contract: the file is a SETT .probe spec. A point header is a line starting "## ". Each point has a line beginning "do:". grounded_ratio returns the fraction (float) of points whose do: line contains an absolute path starting with /home/. Test it on /home/michael/SETT-repo/fixtures/specs/sample-12.probe. path is a str.
+check: python3 -c 'import importlib.util,os;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/4.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);r=m.grounded_ratio("/home/michael/SETT-repo/fixtures/specs/sample-12.probe");assert abs(r-5/12)<1e-6, r;r2=m.grounded_ratio("/home/michael/SETT-repo/fixtures/specs/sample-3.probe");assert abs(r2-1/3)<1e-6, r2'
+
+## 5 fix-partial-parse
+do:    /home/michael/SETT-repo/fixtures/broken/checks-partial.py defines checks(path) and finds only 4 of the 12 checks in a 12-point spec. Read it, find the bug, and write a corrected version to $OUT/5.py. Contract: the file is a SETT .probe spec. A point header is a line starting "## " whose id is the first whitespace-separated token after it. A check begins on a line starting "check:" and continues onto following lines until a blank line or a line starting "## ". Strip the leading "check:" and surrounding whitespace; join continuation lines with a newline. Return a dict mapping point id to check text. Every point has exactly one check, so the dict has one entry per point — use that to check your own work. Test it on /home/michael/SETT-repo/fixtures/specs/sample-12.probe. path is a str.
+check: python3 -c 'import importlib.util,os;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/5.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);r=m.checks("/home/michael/SETT-repo/fixtures/specs/sample-12.probe");assert len(r)==12, len(r);assert all(v.strip() for v in r.values());assert not any(v.startswith("check:") for v in r.values())'
+
+## 6 fix-empty-case
+do:    /home/michael/SETT-repo/fixtures/broken/table-empty-blank.py defines table(rows) and returns an empty string when given an empty list, instead of the header. Read it, find the bug, and write a corrected version to $OUT/6.py. Contract: table(rows) takes a list of dicts each having keys "model", "gym", "score" and returns a GitHub-flavoured markdown table as a string. First line is the header "| model | gym | score |", second the separator "|---|---|---|", then one row per entry in the given order. An empty list still returns the header and separator: the table always has those two lines.
+check: python3 -c 'import importlib.util,os;s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/6.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);t=m.table([{"model":"glm-q4","gym":"code-10","score":"7/10"},{"model":"glm-q6","gym":"code-10","score":"6/10"}]);L=[x.strip() for x in t.strip().splitlines()];assert L[0]=="| model | gym | score |", L[0];assert L[1]=="|---|---|---|", L[1];assert L[2]=="| glm-q4 | code-10 | 7/10 |", L[2];assert len(L)==4, L;assert m.table([]).strip().splitlines()[0]=="| model | gym | score |"'
+
+## 7 fix-missing-binary
+do:    /home/michael/SETT-repo/fixtures/broken/kev-counts-jq.sh is a bash script that prints wrong counts because it calls jq, which is not installed on this box, and because it indexes the JSON as a top-level list. Read it, find both bugs, and write a corrected executable bash script to $OUT/7.sh. Contract: it takes one argument, a path to the CISA KEV JSON. That JSON is an object whose entries live under the key "vulnerabilities". The script prints exactly two lines, "total: N" then "ransomware: M", where N is the number of vulnerabilities and M the count whose knownRansomwareCampaignUse equals "Known". Given no argument it exits 2 with a message on stderr. Use python3 or coreutils; jq is not available.
+check: bash -c 'set -e;P="/home/michael/lab/structured-data/raw/kev/known_exploited_vulnerabilities.json";read -r n r < <(python3 -c "import json;d=json.load(open(\"$P\"));print(len(d[\"vulnerabilities\"]),sum(1 for v in d[\"vulnerabilities\"] if v.get(\"knownRansomwareCampaignUse\")==\"Known\"))");out=$(bash "$OUT/7.sh" "$P");[ "$(printf "%s" "$out" | sed -n 1p)" = "total: $n" ];[ "$(printf "%s" "$out" | sed -n 2p)" = "ransomware: $r" ];if bash "$OUT/7.sh" >/dev/null 2>&1; then exit 1; fi'
