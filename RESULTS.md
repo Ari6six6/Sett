@@ -830,3 +830,68 @@ written after seeing the outcome.
 
 Failure of 4 or 5 is more interesting than success. Both are about whether the
 instrument reads true, not about whether the model is good.
+
+---
+
+## Box #5 — `index-6`, and defect 10 found by its own failure
+
+`index-6` is the gym built from the lab's own dated scar: a sqlite wrapper the
+SCARS.md entry asked for on 2026-07-28 and nobody wrote. First flight, n=3.
+
+**4, 5, 3 out of 6 — mean 4.00.**
+
+| bucket | points |
+|---|---|
+| SOLID 3/3 | 2 db-external-id · 3 db-neighbors · 4 db-phase |
+| NOISY | 1 db-types (2/3) · 6 db-cli (1/3) |
+| DEAD 0/3 | **5 db-unmitigated** |
+
+### The sealed prediction was mostly wrong
+
+Recorded at 16:59:33, commit `e5675b7`, before the box existed:
+
+| claim | outcome |
+|---|---|
+| points 1, 2, 6 land SOLID | **wrong** — only 2 did; 1 is 2/3 and 6 is 1/3 |
+| point 5 is the one that flips | **half right** — it is the failure, but it never passed once. Predicting NOISY and getting DEAD is not a hit |
+| gym mean ≥ 4.5/6 | **wrong** — 4.00 |
+
+One of three. The instinct about *which* point was hardest was right and the
+reasoning was right — two joins and a negation — but calling the bucket wrong
+matters, because DEAD and NOISY have different causes and different fixes.
+
+### Why point 5 died — and it is not the model's fault alone
+
+The artifact does two things wrong. It writes `FROM attack-pattern ap`, turning
+a *type value* into a table name; and it calls `cursor.fetchall()` twice, so the
+second call returns empty and the function yields 0 rows where 26 are expected.
+The first is a real model error.
+
+But it also guessed `kc.object_ref` for the join column. **Point 4's `do:`
+names the kill_chain columns. Point 5's did not.** That is a coin flip the
+operator built, in a gym written the same afternoon, in a repo whose whole
+argument is that such coin flips read as model failures.
+
+### Defect 10 — `sett lint` was a blind audit
+
+That asymmetry is *precisely* lint's second category, "formats a sibling
+explains but this point does not". Lint reported **0 defects** on `index-6`.
+
+The category was implemented as a hardcoded dictionary of two formats —
+`state.tsv` and `.probe` — the two this repo grew up on. It had never heard of
+a `kill_chain` table, so it narrowed silently to what it was born knowing and
+kept printing the reassuring word. Same disease as `rot` going blind when the
+specs became portable, found the same way: by something failing that it should
+have caught first.
+
+The check is now generic: if any point enumerates the columns of a named table
+and a sibling references that table without them, it fires. On `index-6` it
+immediately named point 5 twice — for `kill_chain` **and** for `relationships`
+— and produced no new findings on the six other specs.
+
+`index-6` p5 now states all three schemas; lint is 0; gates A, B and C still
+hold at 6/6. The spec text changed, so the 4/5/3 above is the score of a gym
+text that no longer exists, and `sett score` will mark it `(!)`. That is
+correct: the next run measures a different question.
+
+**Prediction, sealed before that run happens: point 5 moves off 0/3.**

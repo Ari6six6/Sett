@@ -85,6 +85,7 @@ for b in blocks:
                 if l.startswith("do:") or (l.strip() and not l.startswith("check:") and not l.startswith("#")))
     pts[pid]=do
 # a "format explanation" = names the artefact type AND enumerates its parts
+# Hardcoded formats, kept because they are the two this repo grew up on.
 FORMATS={
  "state.tsv": r"columns|tab-separated columns|timestamp,\s*id",
  ".probe":    r"first token|## |header looks like|id is the",
@@ -95,6 +96,28 @@ for fmt,expl in FORMATS.items():
     silent=[p for p in users if p not in explainers]
     if explainers and silent:
         print(f"{','.join(silent)}\tuses {fmt} but does not describe it; point(s) {','.join(explainers)} do")
+
+# GENERIC schema asymmetry. The dict above only ever knew two formats, so on a
+# new gym this whole category reported 0 while a textbook instance sat in it:
+# index-6 p4 named the kill_chain columns, p5 referenced the same table and did
+# not, the model guessed `kc.object_ref`, and the point scored 0/3. An audit
+# that silently narrows to what it was born knowing is worse than no audit.
+#
+# Rule: if ANY point enumerates the columns of a named table and another point
+# references that same table without enumerating them, the second point is
+# asking the model to guess a schema its sibling was handed.
+SCHEMA = re.compile(r'\b(?:the\s+)?([A-Za-z_][A-Za-z0-9_]*)\s+table\s+has\s+columns?\b', re.I)
+MENTION = lambda tbl: re.compile(r'\b' + re.escape(tbl) + r'\s+table\b', re.I)
+schemas = {}
+for pid, d in pts.items():
+    for m in SCHEMA.finditer(d):
+        schemas.setdefault(m.group(1).lower(), []).append(pid)
+for tbl, explainers in schemas.items():
+    silent = [pid for pid, d in pts.items()
+              if pid not in explainers and MENTION(tbl).search(d)]
+    if silent:
+        print(f"{','.join(sorted(silent))}\treferences the {tbl} table without its "
+              f"columns; point(s) {','.join(sorted(explainers))} enumerate them")
 PY
 echo
 
