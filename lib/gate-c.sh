@@ -112,5 +112,16 @@ print(m.checks(sys.argv[2]).get(sys.argv[3],""))
 done
 
 echo
+# A gate that examined NOTHING must not report success. With its spec parser
+# missing this printed "0/0 checks reject a plausible impostor, 0 FAKE" and
+# exited 0 — and selftest judged that clean on every spec, because its rule is
+# passed==total and 0==0. The whole run stayed green while gate C verified
+# nothing. Found by hiding reference/code-sett-8-reference on purpose.
+if [ "$total" -eq 0 ]; then
+  echo "gate C: BROKEN — parsed 0 points from $SPEC."
+  echo "        Gate C depends on $PARSER to read a spec. If that is missing or"
+  echo "        broken, this gate reports nothing and MUST NOT read as a pass."
+  exit 2
+fi
 echo "gate C: $real/$total checks reject a plausible impostor, $fake FAKE"
 [ "$fake" -eq 0 ]

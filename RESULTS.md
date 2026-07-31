@@ -895,3 +895,47 @@ text that no longer exists, and `sett score` will mark it `(!)`. That is
 correct: the next run measures a different question.
 
 **Prediction, sealed before that run happens: point 5 moves off 0/3.**
+
+---
+
+## Defect 11 — an empty gate read as a passing gate
+
+Prompted by defect 10, every instrument was swept for the same disease:
+hardcoded knowledge that silently narrows. One live dependency turned up.
+
+`gate-c.sh` parses specs using `reference/code-sett-8-reference` — a real
+dependency, not a comment. Hidden on purpose, gate C printed:
+
+```
+gate C: 0/0 checks reject a plausible impostor, 0 FAKE
+```
+
+and **exited 0**. "0 FAKE" reads as success.
+
+Worse, `selftest` judged that **clean on every spec**, because its rule is
+`passed == total` and `0 == 0` satisfies it. Gate C — the gate that caught the
+one historical fake in `flash-100-core` — verified *nothing* on seven specs
+while the table showed no complaint.
+
+The run did fail, but by luck: gate B independently noticed the same directory
+was missing, because the parser happens to live under `reference/`. **Had that
+parser lived anywhere else, selftest would have printed PASS while gate C was
+blind.** A safety net that catches a fault through an unrelated instrument is
+not a safety net, it is a coincidence.
+
+Fixed at both ends, and negative-controlled in both directions:
+
+- `gate-c.sh` now refuses to report a score when it parsed 0 points: it prints
+  `BROKEN`, names the dependency, and **exits 2** (verified: was 0, now 2).
+- `selftest` treats `0/0` as a failure explicitly, never as clean, and it is
+  not eligible for `selftest.accept`.
+
+With the parser hidden, selftest now flags gate C on every spec. With it
+restored, everything returns to green and exit 0. Both directions checked,
+because a detector you have never seen fire is not a detector.
+
+**Three instruments have now had this defect** — `rot` went blind when specs
+became portable, `lint` was hardcoded to two formats it grew up with, and gate
+C reported success on an empty run. The pattern is the finding: *an instrument
+tends to narrow to the world that existed when it was written, and it keeps
+printing the same reassuring word while it does.*

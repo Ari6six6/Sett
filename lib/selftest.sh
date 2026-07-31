@@ -69,6 +69,13 @@ for f in specs/*.probe; do
   # --- judgement -------------------------------------------------------
   for pair in "A:$a" "C:$c"; do
     g="${pair%%:*}"; v="${pair#*:}"
+    # 0/0 is not a pass. The rule below is passed==total, and 0==0 satisfies it,
+    # so a gate that examined no points at all used to read as clean on every
+    # spec. An empty gate is a broken gate and is never accepted.
+    if [ "$v" = "0/0" ]; then
+      fail=$((fail+1)); say "   ! gate $g examined 0 points on $s — broken, not clean"
+      continue
+    fi
     [ -n "$v" ] && [ "${v%%/*}" = "${v##*/}" ] || { accepted "$s:$g" || { fail=$((fail+1)); say "   ! gate $g not clean on $s"; }; }
   done
   if [ "$b" = "none" ]; then
