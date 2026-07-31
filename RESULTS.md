@@ -1010,3 +1010,49 @@ the one I said would be more interesting than success.
 
 It does not fully isolate the GPU — an A100 and a Blackwell still differ — but
 it removes the variable with an actual causal story attached to it.
+
+---
+
+## `stix-graph-12` at n=10 — a third of the n=3 buckets were wrong
+
+**10, 12, 10, 11, 11, 11, 9, 11, 12, 12 — mean 10.90, spread 9–12.**
+
+### Prediction 5: CONFIRMED, exactly at its threshold
+
+The claim was that **at least 5 of the 7 NOISY points would still read NOISY**,
+because a point whose true rate is mid-range cannot resolve at n=10. Five did:
+points 2, 9, 10, 11, 12.
+
+The interesting part is the other two, and the two that went the other way:
+
+| point | n=3 | n=10 | what n=3 got wrong |
+|---|---|---|---|
+| 4 | NOISY (1/3) | **10/10 SOLID** | called a coin flip; it is reliable |
+| 6 | NOISY (2/3) | **10/10 SOLID** | called a coin flip; it is reliable |
+| 7 | SOLID (3/3) | **9/10 NOISY** | called rock solid; it fails ~1 in 10 |
+| 8 | SOLID (3/3) | **9/10 NOISY** | called rock solid; it fails ~1 in 10 |
+
+**Four of twelve points — 33% — were in the wrong bucket at n=3**, and the
+errors run in both directions. This is precisely what the binomial says should
+happen: at three reps, a 90% point reads SOLID a third of the time it is
+observed and a 33% point can read NOISY or DEAD on luck alone.
+
+`solid?` exists in this repo because the tool once called a point rock solid at
+n=2. The same lesson at n=3 is now measured rather than argued: **three reps
+classify two thirds of a gym correctly, and the third you cannot identify from
+inside the run.**
+
+Point 10 at **6/10** is the true frontier — the closest thing to a genuine
+coin flip in the gym, and n=3 had it at 2/3, which looks identical to point 6's
+2/3 that turned out to be a 100% point.
+
+### Prediction 4 failed, and it was already recorded as untestable
+
+The mean of 10.90 is far outside the sealed 8.2–9.8 band. That failure was
+called at 18:09Z, before the number existed, and for the right reason: the box
+and the context size moved along with the rep count, so a high mean supports
+"n=3 under-measured" *or* "the bigger box helps" and this run cannot separate
+them. `flight5c` runs the same gym at ctx 65536 on this same box to isolate it.
+
+**What is safe to say now:** at n=10 the *shape* is trustworthy and at n=3 it
+was not. The absolute level still carries a confound of my own making.
