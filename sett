@@ -741,6 +741,7 @@ case "${1:-}" in
   leak)    shift; exec "$SETT_ROOT/lib/leak.sh" "$@" ;;
   ab)      shift; exec "$SETT_ROOT/lib/ab.sh" "$@" ;;
   runs)    shift; exec "$SETT_ROOT/lib/runs.sh" "$@" ;;
+  cast)    shift; exec "$SETT_ROOT/lib/spells.py" "$@" ;;
   behave)  shift
            # --session measures the FRONTIER model driving this repo, from
            # Claude Code's transcript, with the same question asked of the
