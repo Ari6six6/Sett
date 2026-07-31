@@ -243,6 +243,25 @@ sett score [--doc]           the ledger
 sett vault seal|check <name> prove nothing was lost
 ```
 
+## The words
+
+Every specialised term in this repository names a way the **operator** can fool
+himself. The model only gets the plain words — `artifact`, `PASS`, `FAIL`,
+`ERROR`. That is the same ratio as the defects above, and it is not a
+coincidence.
+
+[GLOSSARY.md](GLOSSARY.md) has all of them: `inversion`, `existence test`,
+`impostor`, `rot`, `lint`, `leak`, `drift`, `confound`, `negative control`,
+`SOLID` / `NOISY` / `DEAD` / `SIGNAL`.
+
+> *Der Begriff* — the one word that describes a fixed thing rather than
+> something omnipresent. A clear and straight line.
+
+Description gestures at something ungrippable. A Begriff has an address. You
+cannot write a check that detects carelessness; you can write one that detects
+a gate which passes with no artifact — and that is the same failure, wearing
+clothes you can grip.
+
 ## The map
 
 ```
@@ -254,6 +273,7 @@ fixtures/       frozen inputs. the ground that cannot move.
 reference/      a working implementation per gym — gate B's answer key.
 docs/           the guided tour, and dated records of what happened.
 RESULTS.md      model × gym × score, with the caveats.
+GLOSSARY.md     the terms, and who each one is about.
 SEAT.md         the law a task runs under.
 ```
 
