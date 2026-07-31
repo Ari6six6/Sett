@@ -6,7 +6,7 @@ Rent a GPU. Seat a local model. Make it prove every claim it makes — to a
 program, not to you.
 
 ```console
-$ sett birth "-p 14893 root@<box-ip> -L 8080:localhost:8080" --model glm-q4
+$ sett birth "-p <port> root@<box-ip> -L 8080:localhost:8080" --model glm-q4
 $ sett gym code-10
 1     dedupe-order                 PASS
 2     kev-ransomware-count         PASS
