@@ -145,7 +145,7 @@ caught one that had been sitting in the ledger marked PASS.
 $ sett rot
 == paths asserted by this repo ==
 clean: every asserted path exists and every documented verb resolves
-       (20 paths, 2 allowlisted in rot.ignore)
+       (24 paths, 2 allowlisted in rot.ignore)
 ```
 
 This one was paid for in blood. A check computed its expected value with
@@ -180,7 +180,7 @@ run: 9 PASS  1 FAIL  0 ERROR  (0 already passing, 10 points)
 ```
 
 A 30-billion-parameter model, on a card you rented by the hour, wrote working
-code against 25 842 real STIX objects and 1 655 real CISA KEV entries. First
+code against 25 843 real STIX objects and 1 655 real CISA KEV entries. First
 attempt. No retries.
 
 **That was one run. Run it three times and it scores 8, 8, 9** — points 1
@@ -200,11 +200,18 @@ about the machine, not gaps in ability. Those facts now live in the law.
 ## Re-verify anything, any time, with no model at all
 
 ```console
-$ sett check code-10
-verify: 9/10 PASS  1 FAIL   (read-only, no model, out=…/out/code-10)
+$ sett check code-10 --out runs/archive/code-10-q4-r1-bareseat
+verify: 9/10 PASS  1 FAIL   (read-only, no model, out=runs/archive/code-10-q4-r1-bareseat)
 ```
 
-Same nine. Same one. Reproduced exactly, from artifacts on disk.
+That is the *archived* run — the exact artifacts the model wrote hours
+earlier, re-scored where they lie. Same nine. Same one. No GPU, no tokens, no
+network.
+
+`--out` exists because writing this section exposed a hole: `sett check` could
+only ever look at the live out dir, so an archived run stopped being
+re-checkable the moment the next run overwrote it. The claim you are reading
+was false until the audit that produced this paragraph.
 
 No GPU. No tokens. No network. The artifacts are on disk and the checks are
 programs, so last week's score is reproducible today for free.
@@ -222,7 +229,10 @@ id  arm A     arm B     bucket
 3   2/2       2/2       SOLID
 6   1/2       2/2       NOISY
 ...
-SOLID 4   DEAD 0   NOISY 4   SIGNAL 0
+SOLID 0   solid? 4   DEAD 0   NOISY 4   SIGNAL 0
+
+  NOTE: only 2 run(s) per arm. Nothing is called SOLID below n=3 —
+  a point seen passing twice can still be a coin flip.
 
 VERDICT: no effect detected.
   4 of 8 points flip WITHIN an arm, so run-to-run variance — not the

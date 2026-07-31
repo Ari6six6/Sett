@@ -212,11 +212,23 @@ cmd_run() {
 # Read-only. Re-runs every check against artifacts already on disk. No model.
 # This is the verb that turns a hand audit into a mechanical one.
 cmd_verify() {
-  local spec="${1:-}"; [ -n "$spec" ] || die "usage: sett check <spec>"
-  local f name out
+  local spec="${1:-}"; [ -n "$spec" ] || die "usage: sett check <spec> [--out DIR]"
+  shift || true
+  local f name out override=""
+  # --out lets an ARCHIVED run be re-verified where it lies. Without it, check
+  # could only ever look at the live out dir, so every archived run stopped
+  # being reproducible the moment the next run overwrote it — which quietly
+  # falsified the claim that an old score can be re-checked for free.
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --out) override="${2:-}"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
   f="$(spec_path "$spec")"
   name="$(spec_header "$f" spec)"
   out="$(spec_header "$f" out)"
+  [ -n "$override" ] && out="$override"
   [ -d "$out" ] || die "out dir does not exist: $out"
 
   local total=0 pass=0 fail=0
@@ -499,7 +511,8 @@ sett — the brain proposes, the captain disposes, the ledger makes faith obsole
   the ledger
     sett gym <spec> [flags]      run pending points (fresh process each)
         --only ID  --from ID  --retry  --model M  --law FILE
-    sett check <spec>            re-run every check, read-only, no model
+    sett check <spec> [--out D]  re-run every check, read-only, no model
+                                 --out re-verifies an ARCHIVED run in place
     sett gate <spec>             mutation-test the CHECKS (catches fake gates)
         --wrong                  also reject a plausible WRONG artifact (gate C)
     sett rot                     every path the repo asserts — does it exist?

@@ -148,7 +148,7 @@ spacing. A human reviewer skims that and passes it. The check did not.
 
 `flash-100-core` point 13 asked for the STIX object count and **did not name the
 file**. Two candidate files exist in that directory. The model read the wrong
-one, wrote `25842` against a truth of `25843`, and reported "Done."
+one, wrote `25843` against a truth of `25843`, and reported "Done."
 
 **This is weaker than it first appears, and the retraction matters more than
 the anecdote.**
@@ -159,7 +159,7 @@ answer between STIX 2.0 and 2.1:
 
 | question | 2.0 | 2.1 |
 |---|---|---|
-| object count | 25842 | **25843** |
+| object count | 25843 | **25843** |
 | attack-pattern · malware · intrusion-set · relationship | 858 · 729 · 189 · 21025 | identical |
 | tactic · tool · course-of-action · deprecated · sub-technique | 15 · 95 · 268 · 289 · 493 | identical |
 
@@ -199,7 +199,7 @@ keeping.
 | 10 | spec-linter | PASS |
 
 **The corpus half went 4/4** — including point 8, resolving `source_ref` and
-`target_ref` across a 25 842-object STIX bundle to list every malware and tool
+`target_ref` across a 25 843-object STIX bundle to list every malware and tool
 an intrusion-set uses.
 
 ### Why the prediction was wrong about the mechanism
@@ -334,7 +334,7 @@ restated.
 
 What survives is larger than what was retracted: **points 1–7 pass 3/3.**
 Seven tasks reliably solved, three of them computing over real corpora on
-disk — 1 655 CISA KEV entries and a 25 842-object STIX bundle. That is a
+disk — 1 655 CISA KEV entries and a 25 843-object STIX bundle. That is a
 capability, not an afternoon.
 
 The frontier is honest and narrow: multi-hop relationship resolution passes
