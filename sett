@@ -731,7 +731,12 @@ case "${1:-}" in
   leak)    shift; exec "$SETT_ROOT/lib/leak.sh" "$@" ;;
   ab)      shift; exec "$SETT_ROOT/lib/ab.sh" "$@" ;;
   runs)    shift; exec "$SETT_ROOT/lib/runs.sh" "$@" ;;
-  behave)  shift; exec "$SETT_ROOT/lib/behave.py" "$@" ;;
+  behave)  shift
+           # --session measures the FRONTIER model driving this repo, from
+           # Claude Code's transcript, with the same question asked of the
+           # small model in the gym: did it check its own work?
+           if [ "${1:-}" = "--session" ]; then exec "$SETT_ROOT/lib/behave-session.py" "$@"; fi
+           exec "$SETT_ROOT/lib/behave.py" "$@" ;;
   work)    shift; exec "$SETT_ROOT/lib/work.sh" "$@" ;;
   score)   shift; cmd_score "$@" ;;
   new)     shift; cmd_new "$@" ;;

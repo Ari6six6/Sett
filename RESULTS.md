@@ -698,3 +698,61 @@ averages 9/12. High effort, low self-checking, decent score.
 None of this is visible in a pass count, and none of it changes one. It is
 recorded because behaviour is the thing that predicts where the next failure
 comes from, and a ledger that only stores verdicts throws it away.
+
+---
+
+## The apparatus, turned on the assistant driving it (2026-07-31)
+
+`sett behave` grades the small model in the gym. It had never been pointed at
+the *other* mouth — the frontier model writing the specs, the checks, and the
+decisions about what counts as done, which is the row this repo says a model
+must never be trusted with.
+
+Claude Code writes the same kind of record pi does, so `sett behave --session`
+asks it the same question.
+
+| | model being graded | assistant doing the grading |
+|---|---|---|
+| checked its own work | **67%** | **68%** |
+
+**The same rate.** A 30-billion-parameter model in a gym and a frontier model
+driving the repo verified their own output about equally often. The assistant
+also wrote 125 times and read 29 — a read:write ratio of **0.23**, while
+working under a law whose first rule is *answer from disk, not from your
+weights.*
+
+### The part that is not a coincidence
+
+`rot.ignore` names exactly two paths as dead on purpose:
+
+```
+/home/michael/probe/probe
+/home/michael/probe/specs
+```
+
+Those are the paths whose deletion produced the founding inversion — the check
+that stopped screaming and started smiling, where `4` began FAILING and `0`
+began PASSING. They are also the **top two entries** in the list of file
+changes that were never verified afterwards.
+
+**The region of work checked least is the region that produced the worst defect
+in the repo.**
+
+**Confound, and it matters:** `probe/` is the earliest work in this transcript,
+from before most of these instruments existed. Low verification there may be
+because there was nothing to verify with, not because of carelessness. That
+reading does not weaken the conclusion — it is the conclusion. The defect
+survived because no instrument was watching, and it was found the moment one
+was.
+
+### Why this is recorded rather than hidden
+
+Every defect on this repo's confession list was found, and the numbers in this
+file are unchanged by any of it. The point is *how* they were found: roughly
+half by an instrument firing — gate B when the reference implementations
+stopped passing, the asserted-path count when it fell from 31 to 13 — and half
+by reading the data.
+
+Vigilance did not scale across an eight-hour session. The instruments did.
+That is the whole argument for building them, and it now applies to both mouths
+rather than only the cheap one.

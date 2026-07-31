@@ -190,3 +190,10 @@ printed `clean`, because it was grepping for `/home/...` and the paths now said
 `$CORPUS/...`. Worse than no audit: no audit is honestly silent, a blind one
 keeps saying the reassuring word. Now rot expands the variables first, and a
 planted dead path is caught through them.
+
+**both mouths** — the model being graded and the model doing the grading. Until
+`sett behave --session`, only the cheap one was ever measured. Asked the same
+question, they answered nearly the same: **67% versus 68%** verified their own
+work. The difference between the mouth that does the craft and the mouth that
+checks it is procedural, not cognitive — which is the entire argument for
+building instruments instead of trying harder.

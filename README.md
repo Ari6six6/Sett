@@ -155,7 +155,7 @@ flash-100-core   23/23     none      22/23     n/a       12
 smoke-3          3/3       none      3/3       n/a       0
 stix-graph-12    12/12     12/12     12/12     n/a       0
 
-verbs clean (16 verbs run; unknown verb dies)
+verbs clean (17 verbs run; unknown verb dies)
 rot   clean
 leak  clean (no run read its own spec today)
 ```
@@ -251,6 +251,8 @@ sett check <spec> [--out D]  re-run every check, read-only, no model
 sett lint <spec>             operator defects that read as model failures
 sett rot                     every path and verb this repo asserts — still real?
 sett leak [since]            did a run read the spec with its own checks?
+sett behave [--session]      what the model DID — --session grades the
+                             assistant driving, not the model being graded
 sett score [--doc]           the ledger
 sett vault seal|check <name> prove nothing was lost
 ```
