@@ -17,7 +17,7 @@
 # rather than hidden — an exception you cannot see is an exception you will
 # forget you made.
 #
-# usage: ./selftest.sh [--quiet]
+# usage: sett selftest [--quiet] [--fast]
 set -uo pipefail
 cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."   # lib/ -> repo root
 Q=0; FAST=0
@@ -96,6 +96,7 @@ sett help|./sett help
 sett body|./sett body
 sett doctor|./sett doctor
 sett score|./sett score
+sett score --doc|./sett score --doc
 sett status|./sett status code-10
 sett check|./sett check code-10
 sett check --out|./sett check code-10 --out reference/code-10-reference
@@ -109,7 +110,7 @@ sett report|./sett report code-10
 VERBS
 # an unknown verb MUST die rather than silently succeed
 ./sett definitely-not-a-verb >/dev/null 2>&1 && { say "  ! unknown verb did not die"; vfail=$((vfail+1)); }
-if [ "$vfail" -eq 0 ]; then say "verbs clean (14 verbs run; unknown verb dies)"; else fail=$((fail+vfail)); fi
+if [ "$vfail" -eq 0 ]; then say "verbs clean (15 verbs run; unknown verb dies)"; else fail=$((fail+vfail)); fi
 
 r="$(./sett rot --quiet >/dev/null 2>&1; echo $?)"
 if [ "$r" -eq 0 ]; then say "rot   clean"; else say "rot   ROT PRESENT"; fail=$((fail+1)); fi

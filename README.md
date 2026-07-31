@@ -2,38 +2,31 @@
 
 > **The brain proposes. The captain disposes. The ledger makes faith obsolete.**
 
+Rent a GPU. Seat a local model. Make it prove every claim it makes — to a
+program, not to you.
+
+```console
+$ sett birth "-p 14893 root@<box-ip> -L 8080:localhost:8080" --model glm-q4
+$ sett gym code-10
+1     dedupe-order                 PASS
+2     kev-ransomware-count         PASS
+...
+run: 9 PASS  1 FAIL  0 ERROR  (0 already passing, 10 points)
+
+$ sett score
+spec             score   model                  spec@    when
+code-10          9/10    glm-4.7-flash          182cc6   2026-07-31 13:20
+```
+
+No transcript. No vibe. No "looks good to me." A number, the model that earned
+it, and the hash of the exact task text it was earned against.
+
 ---
 
-A sett is a badger's den. It is dug once and extended by generation after
-generation, for decades. No badger has ever abandoned a sett because the
-architecture was wrong.
+## What it actually is
 
-**That is the whole rule.** This repository is extended. It is never restarted.
-
----
-
-## What this is
-
-An apparatus for not believing the model.
-
-Fifteen repositories on this account built that apparatus and buried it inside
-a harness. Same organ, fifteen names, never once the product:
-
-| | | |
-|---|---|---|
-| `project_michael` | May | the four-header context package; the `commit_changes` gate |
-| `Hermes` | Jul 5 | **Verification Gauntlet** — *"the doer doesn't grade its own homework"* |
-| `MoR` | Jul 17 | **The Audit** — a falsification state entered *before* speaking |
-| `KARL` | Jul 19 | structured handoffs; bounded reasoning |
-| `MoRE` | Jul 20 | *"a turn that changed files but ran nothing is bounced once"* · *"provenance can no longer lag the evidence"* |
-| `KM1` | Jul 20 | a night shift judged by **a benchmark it cannot game** |
-| `KM2` | Jul 21 | the hash-chained ledger — *"the ledger makes faith obsolete"* |
-| `KM` | Jul 28 | the DEMO law · *canary > `/v1/models` 200* |
-| `karte/RULES.md` | Jul 28 | R2 different mouths · R5 shallow diary = REJECT · R11 ground-first |
-
-Here it is the product.
-
-## The division of labour
+An apparatus for **not believing the model** — including when the model is
+right, which is the harder half.
 
 ```
 What is worth doing        →  the operator
@@ -42,62 +35,71 @@ Whether it was done right  →  a program
 ```
 
 A model can do the middle row. It cannot do the top row, and it must never be
-trusted with the bottom row. Every scar in this lineage is an instance of a
-model being asked to do the top or the bottom row.
+trusted with the bottom row. Fifteen abandoned repositories on this account are
+each an instance of a model being handed the top or the bottom row.
 
-## The rule
+## The one rule
 
 **SETT never implements the agent loop.**
 
-It calls `pi`. `sett do` is one `exec` of `pi` and nothing more. The day a
-`while` loop appears around a model turn in `sett`, this has become the
-sixteenth harness and the loop has won.
+`sett do` is one `exec` of `pi` and nothing more:
 
-That is the only prohibition. Everything else may be built.
-
-Fifteen repositories died of writing the agent loop — the free layer, the one
-that improves without me. Nothing died of writing an instrument.
-
-```
-sett        the program. one file, ~530 lines of bash.
-specs/      gyms. one bounded task, one artifact path, one machine check.
-corpus/     manifests for the data the checks grip on.
-RESULTS.md  model x gym x score.
-SEAT.md     the law a task runs under.
+```bash
+cmd_do() {
+  local m; m="$(require_body)"
+  echo "seat: km-box/$m   law: $SEAT" >&2
+  exec pi -p "$*" --model "km-box/$m" --append-system-prompt "$SEAT"
+}
 ```
 
-## The verbs
+The day a `while` loop appears around a model turn in `sett`, this has become
+the sixteenth harness and the badger goes back in the ground.
+
+That is the only prohibition. The harness layer is free and improving without
+me — pi, Claude Code and the rest are better than anything I would raise. The
+model layer is commoditising. **Verified task definitions over a real corpus
+are neither**, and that is the only layer where my labour compounds.
+
+---
+
+## Quickstart
 
 ```sh
-# the body
-sett birth "-p 32130 root@1.2.3.4 -L 8080:localhost:8080"   # rent, provision, wire
-sett body                    # what is ACTUALLY served — the live endpoint, never a file
-sett do "count the KEV ransomware entries"                  # one bounded task
-sett kill                    # stop paying
+git clone https://github.com/Ari6six6/Sett && cd Sett
+ln -s "$PWD/sett" ~/.local/bin/sett     # bash + coreutils + python3, nothing else
 
-# the ledger
-sett gym analyst-12          # put a model through a gym
-sett gate analyst-12         # are the checks real? mutation-test them first
-sett check analyst-12        # re-verify every artifact, read-only, no model
-sett score                   # the table
-sett vault check gold        # prove nothing was lost
+corpus/fetch.sh                          # the three public datasets the checks grip on
+sett rot                                 # every path this repo asserts — do you have it?
+sett selftest                            # are the gates real? 85s, no GPU, no model
 ```
 
-`sett body` reads the model from the live endpoint on every invocation. There
-is no pin file to drift. A dead endpoint makes `sett do` exit 3 and say so —
-it will not quietly fall back to a cloud model and let you think otherwise.
+> **This is one operator's den, not a package.** The specs name absolute paths
+> on my box, so on yours `sett rot` will list every one that is missing before
+> you waste a GPU hour finding out. That makes porting a checklist rather than
+> an archaeology dig, but it is still a port.
 
-## Why this and not a harness
+`sett selftest` is the honest first command. It runs every gate against every
+spec **without a model and without a GPU** — it is what to run before believing
+any number in this repo, including mine. `sett selftest --fast` (53s) skips the
+two frozen historical specs.
 
-The harness layer is free and improving without me — pi, Claude Code, and the
-rest are better than anything I would raise. The model layer is commoditising.
+Then rent anything with a GPU on vast.ai and paste the SSH string they give you:
 
-**Verified task definitions in a specific domain are neither.** They need a
-corpus, domain judgement, and a decision about what "correct" means. No lab
-ships those for my domain. That is the scarce input, and it is the only layer
-where my labour compounds.
+```sh
+sett birth "-p <port> root@<ip> -L 8080:localhost:8080" --model glm-q4
+sett body                    # what is ACTUALLY served, read from the live endpoint
+sett gym code-10             # put the model through a gym
+sett score                   # the ledger
+sett kill                    # stop paying
+```
 
-## What a point looks like
+`sett body` reads the model from the endpoint on every invocation. There is no
+pin file to drift. A dead endpoint makes `sett do` exit 3 and say so — it will
+not quietly fall back to a cloud model and let you think otherwise.
+
+---
+
+## A gym is four fields
 
 ```
 ## 11 stix-bytes
@@ -105,18 +107,60 @@ do:    Write only the byte size of /path/to/enterprise-attack-stix21.json to $OU
 check: test "$(tr -d '[:space:]' < "$OUT/11.txt")" = "$(stat -c%s /path/to/enterprise-attack-stix21.json)"
 ```
 
-Four fields. The operator writes `do` and `check`. The model never sees `check`
-— a model that can read the gate can teach to it.
+The operator writes `do:` and `check:`. The model is handed `do:` and **never**
+`check:` — a model that can read the gate can teach to it. One fresh process
+per point, so there is no long horizon to lose. No SKIP: PASS or it didn't
+happen.
 
-## Three laws for the checks
+`check:` is a program. Programs cannot be flattered, cannot be bargained with,
+and do not care how confident the prose above them sounded.
+
+## Four laws for the checks
 
 1. **The check is a program, not a model.** A program cannot be flattered.
 2. **A check must fail when the artifact is absent.** Otherwise it is a fake gate.
 3. **A check must fail when the artifact is wrong.** Otherwise it is an existence
-   test, and an existence test is what let a hundred-point gym score 100/100
+   test — and an existence test is what let a hundred-point gym score 100/100
    while proving only that files appeared.
 4. **A check must assert against something that cannot move.** Laws 2 and 3 both
    ask about the artifact. Neither asks whether the *ground* is still there.
+
+## Gate the gates before you believe a single score
+
+This is the part nobody builds, and it is the part that matters.
+
+```console
+$ sett selftest
+
+spec             A         B         C         D         lint
+--------------------------------------------------------------
+analyst-12       12/12     12/12     12/12     n/a       7
+code-10          10/10     10/10     10/10     n/a       0
+code-sett-8      8/8       8/8       8/8       n/a       0
+debug-7          7/7       7/7       7/7       0/7       0
+flash-100-core   23/23     none      22/23     n/a       12
+smoke-3          3/3       none      3/3       n/a       0
+stix-graph-12    12/12     12/12     12/12     n/a       0
+
+verbs clean (15 verbs run; unknown verb dies)
+rot   clean
+leak  clean (no run read its own spec today)
+```
+
+| gate | the question | what it caught |
+|---|---|---|
+| **A** `sett gate` | does the check pass with **no artifact**? | four fake checks at authoring time |
+| **B** `sett check --out` | does it pass the **reference implementation**? | checks that were impossible, not hard |
+| **C** `sett gate --wrong` | does it pass a **wrong-but-present** artifact? | `smoke-3` p3 · `flash-100-core` p87 |
+| **D** `sett gate --broken` | repair gyms: does the **broken input** pass? | gates `debug-7`: 0/7, so no point measures `cp` |
+| `sett rot` | does every asserted path and documented verb still **exist**? | the dead law pointer |
+| `sett lint` | what must the model **guess** that the operator failed to say? | 7 defects in one spec |
+| `sett leak` | did any run **read the spec containing its own checks**? | 15 runs that had the answer key |
+| `sett ab` / `sett runs` | is this difference **real**, or one run's luck? | a 6-vs-4 "result" that was noise |
+
+Read that table as a confession. Every entry in the right-hand column is a
+defect these tools found **in my own work**, and finding them is the entire
+return on the labour.
 
 ## The fourth law was paid for
 
@@ -126,30 +170,107 @@ into `sett`. `find` on a missing directory returns nothing, so the expected
 value silently became `0`.
 
 The check did not break. It **inverted**: the model's correct answer, `4`,
-began FAILING, and a garbage answer, `0`, began PASSING. It had been sitting
-in the ledger as a PASS.
+began FAILING, and a garbage answer, `0`, began PASSING. It had been sitting in
+the ledger as a PASS.
 
-The same bug was in the law. `SEAT.md` told the model to verify its work with
-`probe verify` at `/home/michael/probe/probe` — so every gym ever run had been
-scored under instructions naming a tool that exits 127.
+The same bug was in the law itself. `SEAT.md` told the model to verify its work
+with a tool that no longer existed — so every gym ever run had been scored
+under instructions that exit 127.
 
-And a third costume: `code-sett-8` point 2 asserted `["pass"]==3` against
-`runs/smoke-3/state.tsv`, an append-only file that the next run would have
-changed underneath it.
+And a third costume: `code-sett-8` point 2 asserted `["pass"]==3` against an
+append-only state file that the next run would have changed underneath it.
 
 One bug, three costumes: **a check whose expected value is computed from
-something that can move.** Hence `fixtures/`, and hence:
+something that can move.** Hence `fixtures/`, hence `sett rot`, hence the
+fourth law.
 
-## The instruments
+## The ledger records the conditions, not just the score
 
-| tool | question it asks | what it caught |
+```console
+$ sett score
+spec             score   model                  spec@    when             law
+code-10          9/10    glm-4.7-flash          182cc6   2026-07-31 13:20 SEAT.md
+```
+
+`spec@` is the hash of the gym text the score was earned against. Edit a `do:`
+line and every number recorded against it silently becomes a number about a
+different gym — so `sett score` marks it `(!)` and says so. A score without its
+model, its law and its task text is not a measurement.
+
+`sett score --doc` is [RESULTS.md](RESULTS.md): the written record, the
+analysis, and the caveats.
+
+---
+
+## The verbs
+
+```sh
+# the body
+sett birth "<ssh string>" [--model glm-q4]   rent, provision, wire, verify
+sett body                    what is ACTUALLY served — live endpoint, never a file
+sett do "<task>"             one bounded task under SEAT.md
+sett doctor [--fix]          the endpoint is truth; find and fix pin drift
+sett kill                    stop paying
+
+# the gym
+sett new <name>              scaffold a spec
+sett gym <spec>              run pending points, fresh process each
+sett runs <spec> <n>         fly it n times, keeping every rep's artifacts
+sett ab <spec> <n> <A> <B>   n runs per arm — is the difference real or luck?
+sett status <spec>           what passed, what is pending
+sett report <spec>           write REPORT.md
+
+# the instruments
+sett selftest [--fast]       every gate on every spec — is the instrument sound?
+sett gate <spec>             mutation-test the CHECKS (--wrong, --broken)
+sett check <spec> [--out D]  re-run every check, read-only, no model
+sett lint <spec>             operator defects that read as model failures
+sett rot                     every path and verb this repo asserts — still real?
+sett leak [since]            did a run read the spec with its own checks?
+sett score [--doc]           the ledger
+sett vault seal|check <name> prove nothing was lost
+```
+
+## The map
+
+```
+sett            the program. one file of bash.
+specs/          gyms. one bounded task, one artifact path, one machine check.
+lib/            the instruments sett calls: gates, rot, lint, leak, ab, selftest.
+corpus/         manifests and fetch.sh for the data the checks grip on.
+fixtures/       frozen inputs. the ground that cannot move.
+reference/      a working implementation per gym — gate B's answer key.
+docs/           the guided tour, and dated records of what happened.
+RESULTS.md      model × gym × score, with the caveats.
+SEAT.md         the law a task runs under.
+```
+
+## Where it came from
+
+Fifteen repositories built this apparatus and buried it inside a harness. Same
+organ, fifteen names, never once the product:
+
+| | | |
 |---|---|---|
-| `sett gate` | is the check fake — does it pass with **no** artifact? | four fake checks at authoring time |
-| `sett gate --broken` | repair gyms: does the **broken input** pass? | (new — gates `debug-7`) |
-| `gate-c.sh` | does it pass on a **wrong-but-present** artifact? | `smoke-3` point 3 |
-| `rot.sh` | does every path the repo **asserts** still exist? | the dead law pointer |
-| `ab.sh` | is this difference **real**, or is it one run's luck? | a 6/8-vs-4/8 "result" that was noise |
+| `project_michael` | May | the four-header context package; the `commit_changes` gate |
+| `Hermes` | Jul 5 | **Verification Gauntlet** — *"the doer doesn't grade its own homework"* |
+| `MoR` | Jul 17 | **The Audit** — a falsification state entered *before* speaking |
+| `KARL` | Jul 19 | structured handoffs; bounded reasoning |
+| `MoRE` | Jul 20 | *"a turn that changed files but ran nothing is bounced once"* |
+| `KM1` | Jul 20 | a night shift judged by **a benchmark it cannot game** |
+| `KM2` | Jul 21 | the hash-chained ledger — *"the ledger makes faith obsolete"* |
+| `KM` | Jul 28 | the DEMO law · canary > `/v1/models` 200 |
+| `karte/RULES.md` | Jul 28 | R2 different mouths · R5 shallow diary = REJECT · R11 ground-first |
 
-`gate-c.sh` is built on `points()` and `checks()` — two of the eight utilities
-`code-sett-8` asked the model to write. The gym's output audits the next gym.
-That is the only kind of compounding this repo is trying to have.
+Fifteen died of writing the agent loop — the free layer, the one that improves
+without me. **Nothing died of writing an instrument.**
+
+A sett is a badger's den. It is dug once and extended by generation after
+generation, for decades. No badger has ever abandoned a sett because the
+architecture was wrong.
+
+That is the whole rule. This repository is extended. It is never restarted.
+
+---
+
+*Guided tour with real console output: [docs/SHOWCASE.md](docs/SHOWCASE.md).*

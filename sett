@@ -163,6 +163,23 @@ cmd_run() {
   mkdir -p "$out" "$RUNS/$name"
   local sf; sf="$(state_file "$name")"; : >> "$sf"
 
+  # --- the conditions, recorded by the machine ---------------------------
+  # state.tsv says WHAT happened. Until now nothing said UNDER WHAT, and a
+  # score without its model is not a measurement. RESULTS.md carried the model,
+  # the box and the context length by hand — which is a ledger kept on faith.
+  #
+  # spec_sha is the load-bearing field. A score is a claim about one exact
+  # spec text. Edit a do: line and every number recorded against it silently
+  # becomes a number about a different gym; `sett score` flags that with (!).
+  local rf spec_sha served commit law_name
+  rf="$RUNS/$name/runs.tsv"
+  spec_sha="$(sha256sum "$f" | cut -c1-12)"
+  served="$(served_model 2>/dev/null || true)"; served="${served:-?}"
+  commit="$(git -C "$SETT_ROOT" rev-parse --short HEAD 2>/dev/null || true)"; commit="${commit:--}"
+  law_name="-"; [ -n "$law" ] && law_name="$(basename "$law")"
+  run_row() { printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$(now)" "$1" "$spec_sha" "$MODEL" "$served" "$law_name" "$commit" "$2" >> "$rf"; }
+  run_row START -
+
   local total=0 pass=0 fail=0 err=0 skipped=0
   while IFS=$'\t' read -r id slug d c; do
     [ -n "$id" ] || continue
@@ -205,6 +222,10 @@ cmd_run() {
 
   echo
   echo "run: $pass PASS  $fail FAIL  $err ERROR  ($skipped already passing, $total points)"
+  # The score is the state file's tally, not this invocation's — --only and
+  # --from run a subset, and the ledger's claim is about the whole gym.
+  local scored; scored="$(awk -F'\t' '{v[$2]=$3} END {n=0; for (k in v) if (v[k]=="PASS") n++; print n+0}' "$sf")"
+  run_row DONE "$scored/$total"
   cmd_report "$spec" >/dev/null
 }
 
@@ -493,8 +514,67 @@ cmd_kill() {
 }
 
 cmd_score() {
-  local rf="$SETT_ROOT/RESULTS.md"
-  [ -f "$rf" ] && cat "$rf" || echo "no RESULTS.md yet"
+  # `sett score` used to be `cat RESULTS.md` — a table maintained by hand, in a
+  # repo whose whole claim is that the ledger makes faith obsolete. RESULTS.md
+  # is still the written record and the analysis; it is just no longer the only
+  # thing that can answer "what did this actually score, under what?".
+  if [ "${1:-}" = "--doc" ]; then
+    local doc="$SETT_ROOT/RESULTS.md"
+    [ -f "$doc" ] && cat "$doc" || echo "no RESULTS.md yet"
+    return
+  fi
+
+  echo "== ledger ==  computed from runs/*/state.tsv, conditions from runs.tsv"
+  echo
+  printf '%-16s %-7s %-22s %-8s %-16s %s\n' spec score model spec@ when law
+  printf '%.0s-' {1..86}; echo
+
+  local any=0 flagged=0
+  local sf name total scored line served model law spec_sha when now_sha f
+  for sf in "$RUNS"/*/state.tsv; do
+    [ -f "$sf" ] || continue
+    name="$(basename "$(dirname "$sf")")"
+    any=1
+    scored="$(awk -F'\t' '{v[$2]=$3} END {n=0; for (k in v) if (v[k]=="PASS") n++; print n+0}' "$sf")"
+
+    total="?"; now_sha=""
+    if f="$(spec_path "$name" 2>/dev/null)"; then
+      total="$(parse_spec "$f" | wc -l | tr -d ' ')"
+      now_sha="$(sha256sum "$f" | cut -c1-12)"
+    fi
+
+    model="?"; spec_sha="?"; law="-"; when="?"
+    # pipefail: awk on a missing runs.tsv exits 2 and would take the shell with
+    # it under set -e. A gym that predates the manifest is not an error.
+    line="$(awk -F'\t' '$2=="DONE"' "$RUNS/$name/runs.tsv" 2>/dev/null | tail -1 || true)"
+    [ -z "$line" ] && line="$(tail -1 "$RUNS/$name/runs.tsv" 2>/dev/null || true)"
+    if [ -n "$line" ]; then
+      IFS=$'\t' read -r when _ spec_sha model served law _ _ <<< "$line"
+      [ -n "$served" ] && [ "$served" != "?" ] && model="$served"
+      when="${when%Z}"; when="${when/T/ }"; when="${when%:*}"
+    else
+      # A pre-manifest run. Fall back to the state file's last mtime, and say
+      # plainly that the conditions were not recorded rather than inventing them.
+      when="$(date -u -r "$sf" +'%Y-%m-%d %H:%M' 2>/dev/null || echo '?')"
+    fi
+
+    local mark=""
+    if [ -n "$now_sha" ] && [ "$spec_sha" != "?" ] && [ "$now_sha" != "$spec_sha" ]; then
+      mark=" (!)"; flagged=$((flagged+1))
+    fi
+    printf '%-16s %-7s %-22s %-8s %-16s %s%s\n' \
+      "$name" "$scored/$total" "${model:0:22}" "${spec_sha:0:6}" "$when" "$law" "$mark"
+  done
+
+  [ "$any" -eq 1 ] || echo "(no runs yet — sett gym <spec>)"
+  echo
+  if [ "$flagged" -gt 0 ]; then
+    echo "(!) the spec has CHANGED since that score was recorded. The number is"
+    echo "    about a gym text that no longer exists on disk. Re-run before"
+    echo "    comparing it to anything."
+    echo
+  fi
+  echo "the written record, with the analysis and the caveats:  sett score --doc"
 }
 
 # ------------------------------------------------------------------------ main
@@ -524,7 +604,8 @@ sett — the brain proposes, the captain disposes, the ledger makes faith obsole
     sett runs <spec> <n> [law]   fly it n times, keeping EVERY rep's artifacts
     sett status <spec>           what passed, what's pending
     sett report <spec>           write REPORT.md
-    sett score                   the results table
+    sett score [--doc]           the live ledger — score, model, spec hash
+                                 --doc is RESULTS.md, the written record
     sett new <name>              scaffold a spec
     sett doctor [--fix]          endpoint is truth; find & fix pin drift
     sett vault seal|check <name> prove nothing was lost
