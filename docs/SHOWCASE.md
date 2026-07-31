@@ -43,6 +43,30 @@ Note the last line. It does not say "server started." It says the model
 answered a tool call. A port that accepts TCP is not a model that can think,
 and the difference is the entire point of this program.
 
+### The meter is not the box
+
+On 2026-07-31 that same provisioner printed `weights 0.0GB/18.0GB  0%` for
+twenty-five minutes while the box quietly wrote 2 GB to disk. The meter was
+watching `~/.cache/llama.cpp`; llama.cpp was writing to `/workspace/.hf_home`.
+**A progress display that asserts something the box disagrees with** is the
+same failure as a check that grades against a directory somebody deleted.
+
+Asking the box instead of the meter also found the real problem. Hugging Face
+throttles per connection, and llama.cpp downloads single-stream:
+
+```console
+1 connection    ~5 MB/s     18 GB in ~50 minutes
+8 connections   ~48 MB/s
+16 connections  ~77 MB/s    18 GB in 7 minutes
+```
+
+Same box, same wire, same second. The bottleneck was never the rental. Pulling
+the GGUF with 16 range requests, verifying the assembled file against Hugging
+Face's own sha256, and serving it from disk turned fifty minutes of paid idle
+into seven.
+
+Measure before you accept a number, including a number your own tools print.
+
 ---
 
 ## The one rule
