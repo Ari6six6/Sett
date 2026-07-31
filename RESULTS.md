@@ -3,7 +3,54 @@
 One row per model per gym. A point counts only if its check exited 0.
 No partial credit. No SKIP.
 
+The live version of the table below is `sett score`, computed from
+`runs/*/state.tsv` rather than typed by hand. This file is the written record:
+the analysis, the confounds, and the caveats a table cannot carry.
+
 ---
+
+## 2026-07-31 box #4 — the six predictions
+
+**Model:** GLM-4.7-Flash Q4_K_M (HauhauCS Balanced) · **Box:** 1× A100-PCIE
+40 GB · **ctx:** 65536 · **n=3 per gym**
+
+Six fixes had been written, gated, and never run. Each was recorded in
+`docs/MORNING-2026-07-31.md` as a prediction *before* the box was rented. This
+is what happened.
+
+### 1 · `code-sett-8` point 2 — the point nothing could move
+
+Its `do:` asked for a summary keyed by verdict but never said which column held
+the verdict. The model had to guess, and guessed wrong, run after run:
+
+| configuration | p2 |
+|---|---|
+| first 4-rep baseline | 1/4 |
+| clean law | 0/3 |
+| deambiguated law | 0/3 |
+| repeat of clean | 0/3 |
+| **columns stated in `do:`** | **2/3** |
+
+**1 of 13 before. 2 of 3 after.** Four configurations — two different laws,
+two different boxes — could not shift that point. One sentence naming the
+column layout did.
+
+Point 1 (empty-file case now stated) moved 9/13 → 3/3, pointing the same way,
+but 3/3 at n=3 cannot carry a claim on its own.
+
+**Gym totals: 8, 7, 7** — mean 7.33, against a prior best of 6.25.
+Six of eight points are now SOLID at 3/3; points 2 and 7 remain NOISY.
+
+**Confounds, stated rather than buried.** The box changed as well as the spec
+text (A100 40 GB, not the RTX 6000 Ada those older numbers came from), so this
+is not a clean single-variable experiment. And the spec text itself changed by
+design, which means `sett score` marks the old numbers `(!)` — they were earned
+against a gym text that no longer exists. That flag is correct and it applies
+to this comparison too: the fix is *supported*, not *proven*, and the effect
+size is not measurable at this n.
+
+**Correction to the morning brief:** it said p2 had scored "0/3 in every
+configuration". The earliest run scored 1/4. The table above is the record.
 
 ## 2026-07-30 box #2 — the brief experiment
 
