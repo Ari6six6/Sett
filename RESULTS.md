@@ -425,6 +425,46 @@ a broken one belongs makes it exit 1.
 **It has not been run.** There is no score here and will not be until a box
 runs it.
 
+### Correction: flash-100-core is 22/23, not 23/23
+
+The published figure was gate A only — every check fails when the artifact is
+absent. Gate C did not exist when that audit ran. Applied now, `flash-100-core`
+point 87 is a genuine fake:
+
+```
+## 87 sha256-of-84
+do:    Write the sha256sum of $OUT/84-hello.txt to $OUT/87.txt
+check: grep -qF "$(sha256sum "$OUT/84-hello.txt" | cut -d' ' -f1)" "$OUT/87.txt"
+```
+
+When `84-hello.txt` is absent, `sha256sum` prints nothing, the grep pattern
+becomes the empty string, and **`grep -qF ""` matches any non-empty file.**
+The point passes on arbitrary garbage. Reproduced directly:
+
+```console
+$ echo "anything at all" > 87.txt          # 84-hello.txt does not exist
+$ grep -qF "$(sha256sum 84-hello.txt 2>/dev/null | cut -d' ' -f1)" 87.txt && echo PASSES
+PASSES
+```
+
+In a sequential run `84-hello.txt` usually exists, so this rarely fired. But it
+means **point 87 silently passes whenever point 84 failed** — a scoring
+dependency nobody declared.
+
+This is the fourth instance of one bug family found today:
+
+| where | expected value derived from | became |
+|---|---|---|
+| `smoke-3` p3 | `find` over a deleted directory | `0` — check inverted |
+| `SEAT.md` | a tool path removed in a merge | exit 127 |
+| `code-sett-8` p2 | a live append-only `state.tsv` | drifts on next run |
+| `flash-100-core` p87 | `sha256sum` of a possibly-absent file | `""` — matches anything |
+
+**Not fixed.** flash-100-core is a historical record with published scores;
+editing it would invalidate them. Recorded here and accepted in
+`selftest.accept` with this reason, so every future selftest prints it rather
+than rediscovering it.
+
 ## Verdict so far
 
 A 30B-class local model does the work and cannot certify the work.
@@ -445,4 +485,6 @@ sett ab <spec> <n> <A> <B>  # n runs per arm before believing a difference
 ```
 
 `sett gate` was run on every spec before any model saw it:
-`smoke-3` 3/3 real, `analyst-12` 12/12 real, `flash-100-core` 23/23 real.
+`smoke-3` 3/3 real, `analyst-12` 12/12 real, `flash-100-core` 23/23 real
+**on gate A**. Gate C, written later, puts flash-100-core at **22/23** — see
+the correction below.

@@ -59,8 +59,16 @@ do = ""
 for line in blk.splitlines():
     if line.startswith("do:"): do = line[3:].strip()
 
-# every $OUT/<name> the do: line names
+# Every $OUT/<name> the do: names — but only the ones this point PRODUCES.
+# A do: like "Copy $OUT/84-hello.txt to $OUT/85-hello-copy.txt" names an INPUT
+# belonging to point 84. Planting filler in both made `cmp -s A B` succeed,
+# because identical filler is what a correct copy looks like — gate C reported
+# a fake check that was not fake. By convention an artifact belongs to the
+# point whose id begins its filename.
 arts = re.findall(r'\$OUT/([A-Za-z0-9_.\-]+)', do)
+owned = [a for a in arts if re.match(re.escape(pid) + r'[._-]', a) or a.split('.')[0] == pid]
+if owned:
+    arts = owned
 # every identifier used as a call target, e.g. "defining dedupe(items)"
 fns = re.findall(r'([a-z_][a-z0-9_]*)\s*\(', do)
 fns = [f for f in fns if f not in ("e","g")] or ["main"]

@@ -1,0 +1,24 @@
+# Known, accepted exceptions. Format: <spec>:<gate>, one per line, each with
+# a reason above it. Printed by every selftest run — an exception you cannot
+# see is one you will forget you made.
+
+# analyst-12 is a HISTORICAL record with published scores (10/12). Its do:
+# lines say "the KEV catalog" without a path, which lint correctly flags. It
+# is deliberately not fixed: editing it would silently invalidate every number
+# already recorded against it. RESULTS carries the caveat that its score
+# partly measures the model's willingness to hunt the filesystem.
+analyst-12:lint
+
+# smoke-3 is the three-point wiring check — READY, uname, count files. There
+# is no reference implementation because there is nothing to implement; the
+# artifacts are values, not programs. Gates A and C still apply and pass.
+smoke-3:B
+
+# flash-100-core is a HISTORICAL record with published scores. Gate C finds
+# point 87 genuinely fake: its expected value is sha256sum of a file that may
+# be absent, and an empty grep -qF pattern matches anything, so it passes on
+# garbage whenever point 84 failed. Correction recorded in RESULTS. Not fixed,
+# because editing it would invalidate the numbers already published against it.
+flash-100-core:C
+flash-100-core:B
+flash-100-core:lint
