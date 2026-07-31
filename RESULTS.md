@@ -987,3 +987,26 @@ variance rather than the absolute score.
 
 **The clean experiment was available and I did not run it:** ten reps on the
 same box as the baseline. Recorded so the next person does not repeat it.
+
+### Retiring the confound rather than confessing it
+
+**Sealed at 18:12Z, before the isolating run.**
+
+A confound stated and left standing is just a nicer way of publishing a number
+you cannot defend. This box can separate the two variables directly: same
+hardware, same weights file, same spec, **context dropped back to 65536** — the
+only difference from the n=10 run above.
+
+| outcome | reading |
+|---|---|
+| ctx-65536 here scores ~9 | context was the cause; the n=3 baseline was fine |
+| ctx-65536 here scores ~10 | context is not the cause; **n=3 really did under-measure this gym** |
+
+**My prediction: ~10.** Every point is a fresh process that reads the 51 MB
+bundle through a `bash` tool in chunks; it never needed 98k of room to begin
+with. If that holds, the honest reading of the n=10 result is that three reps
+under-measured `stix-graph-12`, which is a finding about the *instrument* and
+the one I said would be more interesting than success.
+
+It does not fully isolate the GPU — an A100 and a Blackwell still differ — but
+it removes the variable with an actual causal story attached to it.
