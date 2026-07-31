@@ -1,0 +1,45 @@
+# spec: index-6
+# out:  $SETT/out/index-6
+#
+# The dead-index gym. Built from a real, dated scar in the operator's lab:
+#
+#   SCARS.md, 2026-07-28 — "No sqlite3 CLI and no jq on host (pure-python floor)"
+#   "Treat bundle.sqlite as optional/skippable until a sqlite3 CLI (or a python
+#    sqlite3-module wrapper) exists."
+#
+# That wrapper was never built. 63 MB of indexed ATT&CK data — 25 843 objects,
+# 21 025 relationships, 11 indexes — has been unqueryable on this host for
+# three days, while python's own sqlite3 module sat installed the entire time.
+#
+# This gym is that wrapper. A pass here is not a score, it is the tool that
+# makes the index live: the same shape as code-sett-8, aimed at the lab instead
+# of at SETT.
+#
+# Every point states its full contract and names the database, because a repair
+# task that leaves the contract vague is measuring guesswork. Ground truth for
+# every check is computed from the same frozen database file, which cannot move
+# under the check — the fourth law.
+
+## 1 db-types
+do:    The SQLite database at $CORPUS/../derived/attack-index/bundle.sqlite holds a MITRE ATT&CK index. The sqlite3 command-line tool is NOT installed on this box, but python's sqlite3 module is. Write a python file $OUT/1.py defining types(db_path), where db_path is a str filesystem path, which opens that database read-only with the python sqlite3 module and returns a dict mapping each distinct value of the objects table's type column to the number of rows with that type. Keys are str, values are int. Do not load any JSON file; query the database.
+check: python3 -c 'import importlib.util,os,sqlite3;D="$CORPUS/../derived/attack-index/bundle.sqlite";s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/1.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);g=m.types(D);e=dict(sqlite3.connect(D).execute("select type,count(*) from objects group by type"));assert g==e,(len(g),len(e));assert sum(g.values())==25843,sum(g.values())'
+
+## 2 db-external-id
+do:    Write a python file $OUT/2.py defining by_external_id(db_path, ext_id) which queries the SQLite database at $CORPUS/../derived/attack-index/bundle.sqlite using python's sqlite3 module. db_path and ext_id are both str. Return a sorted list of the distinct name values from the objects table whose external_id column equals ext_id exactly. Return an empty list when nothing matches. Names that are NULL are skipped. The sqlite3 CLI is not installed; use the python module.
+check: python3 -c 'import importlib.util,os,sqlite3;D="$CORPUS/../derived/attack-index/bundle.sqlite";s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/2.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);c=sqlite3.connect(D);e=sorted({r[0] for r in c.execute("select name from objects where external_id=? and name is not null",("T1059",))});assert m.by_external_id(D,"T1059")==e,e;assert m.by_external_id(D,"T-NOPE-0000")==[]'
+
+## 3 db-neighbors
+do:    Write a python file $OUT/3.py defining neighbors(db_path, object_id) which queries the SQLite database at $CORPUS/../derived/attack-index/bundle.sqlite using python's sqlite3 module. db_path and object_id are str. The relationships table has columns id, relationship_type, source_ref, target_ref. Return a dict with exactly two keys, "out" and "in": "out" is the sorted list of distinct target_ref values for rows whose source_ref equals object_id, and "in" is the sorted list of distinct source_ref values for rows whose target_ref equals object_id. Both lists are empty when there are no matches. The sqlite3 CLI is not installed; use the python module.
+check: python3 -c 'import importlib.util,os,sqlite3;D="$CORPUS/../derived/attack-index/bundle.sqlite";s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/3.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);c=sqlite3.connect(D);oid=c.execute("select source_ref from relationships group by source_ref order by count(*) desc limit 1").fetchone()[0];o=sorted({r[0] for r in c.execute("select target_ref from relationships where source_ref=?",(oid,))});i=sorted({r[0] for r in c.execute("select source_ref from relationships where target_ref=?",(oid,))});g=m.neighbors(D,oid);assert set(g)=={"out","in"},list(g);assert g["out"]==o,len(o);assert g["in"]==i,len(i);assert m.neighbors(D,"x--0")=={"out":[],"in":[]}'
+
+## 4 db-phase
+do:    Write a python file $OUT/4.py defining phase_techniques(db_path, phase_name) which queries the SQLite database at $CORPUS/../derived/attack-index/bundle.sqlite using python's sqlite3 module. db_path and phase_name are str. The kill_chain table has columns object_id, kill_chain_name, phase_name. Return a sorted list of the distinct name values from the objects table for rows whose type is exactly "attack-pattern" and whose id appears in kill_chain with the given phase_name. Skip NULL names. Return an empty list when nothing matches. The sqlite3 CLI is not installed; use the python module.
+check: python3 -c 'import importlib.util,os,sqlite3;D="$CORPUS/../derived/attack-index/bundle.sqlite";s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/4.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);c=sqlite3.connect(D);q="select distinct o.name from objects o join kill_chain k on k.object_id=o.id where o.type=\"attack-pattern\" and k.phase_name=? and o.name is not null";e=sorted(r[0] for r in c.execute(q,("execution",)));assert e,"fixture empty";assert m.phase_techniques(D,"execution")==e,len(e);assert m.phase_techniques(D,"no-such-phase")==[]'
+
+## 5 db-unmitigated
+do:    Write a python file $OUT/5.py defining unmitigated(db_path, phase_name) which queries the SQLite database at $CORPUS/../derived/attack-index/bundle.sqlite using python's sqlite3 module. db_path and phase_name are str. Return a sorted list of the distinct name values of objects whose type is exactly "attack-pattern", whose id appears in the kill_chain table with the given phase_name, and which have NO row in the relationships table where relationship_type is exactly "mitigates" and target_ref equals that object's id. Skip NULL names. Return an empty list when nothing matches. The sqlite3 CLI is not installed; use the python module.
+check: python3 -c 'import importlib.util,os,sqlite3;D="$CORPUS/../derived/attack-index/bundle.sqlite";s=importlib.util.spec_from_file_location("m",os.environ["OUT"]+"/5.py");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);c=sqlite3.connect(D);q="select distinct o.name from objects o join kill_chain k on k.object_id=o.id where o.type=\"attack-pattern\" and k.phase_name=? and o.name is not null and o.id not in (select target_ref from relationships where relationship_type=\"mitigates\")";e=sorted(r[0] for r in c.execute(q,("execution",)));assert m.unmitigated(D,"execution")==e,(len(e),len(m.unmitigated(D,"execution")));assert m.unmitigated(D,"no-such-phase")==[]'
+
+## 6 db-cli
+do:    Write an executable bash script $OUT/6.sh that makes the ATT&CK index queryable from the command line without the sqlite3 CLI, which is not installed on this box. It takes exactly two arguments: a path to the SQLite database, and an ATT&CK external id such as T1059. It must print, one per line and sorted, the distinct name values from the objects table whose external_id equals that id, skipping NULL names, and print nothing else. Given fewer than two arguments it must write a usage message to stderr and exit 2. Use python3 embedded in the script; jq and the sqlite3 CLI are both unavailable.
+check: bash -c 'set -e;D="$CORPUS/../derived/attack-index/bundle.sqlite";E=$(python3 -c "import sqlite3;print(chr(10).join(sorted({r[0] for r in sqlite3.connect(\"$D\").execute(\"select name from objects where external_id=? and name is not null\",(\"T1059\",))})))");G=$(bash "$OUT/6.sh" "$D" T1059);[ "$G" = "$E" ];if bash "$OUT/6.sh" "$D" >/dev/null 2>&1; then exit 1; fi'
