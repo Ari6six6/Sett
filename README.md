@@ -170,10 +170,19 @@ leak  clean (no run read its own spec today)
 | `sett lint` | what must the model **guess** that the operator failed to say? | 7 defects in one spec |
 | `sett leak` | did any run **read the spec containing its own checks**? | 15 runs that had the answer key |
 | `sett ab` / `sett runs` | is this difference **real**, or one run's luck? | a 6-vs-4 "result" that was noise |
+| `sett blind` | break the world — do the instruments **notice**? | `rot`, `lint` and gate C had each gone blind |
 
 Read that table as a confession. Every entry in the right-hand column is a
 defect these tools found **in my own work**, and finding them is the entire
-return on the labour.
+return on the labour. Eleven so far; ten of them mine.
+
+The last row is the one that took longest to learn. Three separate instruments
+narrowed silently to the world that existed when they were written and went on
+printing the same reassuring word — `rot` when the specs became portable,
+`lint` when a gym introduced a schema it had never met, gate C when the parser
+it depends on went missing and it reported `0/0 … 0 FAKE` and exited zero.
+**Zero of zero is not a pass.** `sett blind` deliberately breaks the world and
+demands each instrument complain.
 
 ## The fourth law was paid for
 
@@ -256,6 +265,7 @@ sett behave [--session]      what the model DID — --session grades the
                              assistant driving, not the model being graded
 sett score [--doc]           the ledger
 sett vault seal|check <name> prove nothing was lost
+sett work                    tmux workbench: runner, watch, shell
 ```
 
 ## The words
@@ -286,6 +296,7 @@ lib/            the instruments sett calls: gates, rot, lint, leak, ab, behave, 
 corpus/         manifests and fetch.sh for the data the checks grip on.
 fixtures/       frozen inputs. the ground that cannot move.
 reference/      a working implementation per gym — gate B's answer key.
+patches/        fixes to things this repo does not own (km lives outside git).
 docs/           the guided tour, and dated records of what happened.
 RESULTS.md      model × gym × score, with the caveats.
 GLOSSARY.md     the terms, and who each one is about.
