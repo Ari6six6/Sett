@@ -113,6 +113,46 @@ bargained with, and do not care how confident the prose above them sounded.
 
 This is the part nobody builds, and it is the part that matters.
 
+**One command runs all of it.** No GPU, no model, no rental — 85 seconds.
+
+```console
+$ sett selftest
+
+spec             A         B         C         D         lint
+--------------------------------------------------------------
+analyst-12       12/12     12/12     12/12     n/a       7
+code-10          10/10     10/10     10/10     n/a       0
+code-sett-8      8/8       8/8       8/8       n/a       0
+debug-7          7/7       7/7       7/7       0/7       0
+flash-100-core   23/23     none      22/23     n/a       12
+smoke-3          3/3       none      3/3       n/a       0
+stix-graph-12    12/12     12/12     12/12     n/a       0
+
+verbs clean (15 verbs run; unknown verb dies)
+rot   clean
+leak  clean (no run read its own spec today)
+
+accepted exceptions (selftest.accept):
+  analyst-12:lint
+  smoke-3:B
+  flash-100-core:C
+  flash-100-core:B
+  flash-100-core:lint
+
+selftest: PASS — every gate holds on every spec
+```
+
+Read the exceptions block twice. Those five lines are the parts of this repo
+that are **known to be imperfect and deliberately not fixed**, each with a
+written reason, printed on every single run. An exception you cannot see is an
+exception you will forget you made.
+
+`flash-100-core` sits there admitting that its published 23/23 is really 22/23.
+It stays admitted rather than edited, because editing a historical spec
+silently invalidates every number ever recorded against it.
+
+Here is what each column is asking.
+
 **Gate A — does the check fail when the artifact is missing?**
 
 ```console
@@ -139,13 +179,35 @@ Why both exist: an earlier gym scored **100/100** and meant only *"a hundred
 files appeared."* Gate A caught four fake checks at authoring time. Gate C
 caught one that had been sitting in the ledger marked PASS.
 
+**Gate B — does the check pass a *correct* implementation?**
+
+A gate that nothing can pass is not strict, it is broken. Every gym ships a
+reference implementation, and `sett check --out` grades it exactly as a model
+run is graded — same checks, no model involved.
+
+```console
+$ sett check code-10 --out reference/code-10-reference
+verify: 10/10 PASS  0 FAIL   (read-only, no model, out=reference/code-10-reference)
+```
+
+**Gate D — for repair gyms: does the *broken input* pass?**
+
+`debug-7` hands the model seven genuinely broken files and asks for fixes. That
+creates a failure the other gates cannot see: if the broken input would itself
+pass, the point is solvable by copying the input, and the gym measures `cp`.
+
+```console
+$ sett gate debug-7 --broken
+gate D: 0/7 broken inputs pass. Every point requires an actual repair.
+```
+
 **Gate R — has the ground moved under the check?**
 
 ```console
 $ sett rot
 == paths asserted by this repo ==
 clean: every asserted path exists and every documented verb resolves
-       (24 paths, 2 allowlisted in rot.ignore)
+       (31 paths, 2 allowlisted in rot.ignore)
 ```
 
 This one was paid for in blood. A check computed its expected value with

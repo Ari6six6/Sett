@@ -158,7 +158,14 @@ cmd_run() {
   assert_out_writable "$out"
 
   command -v pi >/dev/null 2>&1 || die "pi not on PATH"
-  [ -n "$MODEL" ] || die "no model. Set SETT_MODEL or pass --model (e.g. km-box/qwen3.6-27b-fable)"
+  # The endpoint is truth for WHICH model too. Without this, `sett runs` dies
+  # with "no model" unless SETT_MODEL happens to be exported, and the obvious
+  # workaround is to write the name into a file — which is precisely the pin
+  # drift `sett doctor` exists to catch. Ask the thing that is actually serving.
+  if [ -z "$MODEL" ]; then
+    local served_now; served_now="$(require_body)" || exit 3
+    MODEL="km-box/$served_now"
+  fi
 
   mkdir -p "$out" "$RUNS/$name"
   local sf; sf="$(state_file "$name")"; : >> "$sf"

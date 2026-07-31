@@ -24,4 +24,12 @@ for r in $(seq 1 "$N"); do
   echo "rep $r: $(awk -F'\t' '{v[$2]=$3} END {n=0;for(k in v) if(v[k]=="PASS") n++; print n}' "runs/$SPEC/state.tsv") PASS   -> runs/archive/$SPEC-rep$r/"
 done
 echo
-./ab-analyse.py "$SPEC-x$N" 2>/dev/null || echo "raw: $TSV"
+# Not `2>/dev/null || echo raw:` — that swallowed the analyser's own breakage
+# when it moved into lib/, and reported a bare TSV path as if that were the
+# designed outcome. A tool that degrades quietly is how a repo stops knowing
+# what it measures.
+if [ -x lib/ab-analyse.py ]; then
+  lib/ab-analyse.py "$SPEC-x$N" || { echo "ab-analyse failed (exit $?)"; echo "raw: $TSV"; }
+else
+  echo "lib/ab-analyse.py missing or not executable"; echo "raw: $TSV"
+fi
