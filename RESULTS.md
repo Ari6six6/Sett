@@ -764,3 +764,39 @@ by reading the data.
 Vigilance did not scale across an eight-hour session. The instruments did.
 That is the whole argument for building them, and it now applies to both mouths
 rather than only the cheap one.
+
+---
+
+## Defect 9: the compounding claim did not hold (2026-07-31)
+
+The README carried this until today's rewrite:
+
+> *"`gate-c.sh` is built on `points()` and `checks()` — two of the eight
+> utilities `code-sett-8` asked the model to write. The gym's output audits the
+> next gym. That is the only kind of compounding this repo is trying to have."*
+
+That was the repository's central claim about **compounding** — that the work
+feeds itself, model output becoming the next instrument. Checked, on challenge:
+
+- `gate-c.sh` depends on `reference/code-sett-8-reference`, which is the
+  hand-written **reference implementation** — gate B's answer key, authored by
+  the operator, not produced by a gym run.
+- No file in that directory is byte-identical to any archived model artifact.
+- Style is decisive: **24 of 24** GLM artifacts from today's runs carry
+  docstrings; **0 of 8** reference files do. The reference has no docstrings,
+  no type hints, no imports. It is not the same hand.
+
+The claim is therefore **unsupported**, and the evidence points against it.
+
+It is not fully disproven — provenance was never recorded, which is the actual
+root cause. A claim about where code came from needs the same treatment as a
+score: recorded at the time by a program, not remembered afterwards. `runs.tsv`
+now does this for scores. Nothing does it for reference implementations.
+
+**The claim was removed from the README in the same day's restructure, by
+accident.** It did not survive an editorial cut. That is luck, not an audit,
+and the two are easy to confuse in hindsight — which is why it is written down
+here rather than quietly left deleted.
+
+Found because the operator asked a hostile question about who writes the gyms.
+No gate covers prose, and prose is where the flattering claims live.
