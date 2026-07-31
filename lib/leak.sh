@@ -28,7 +28,11 @@ set -uo pipefail
 cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."   # lib/ -> repo root
 
 SINCE="${1:-$(date +%Y-%m-%d) 00:00}"
-SESS="$HOME/.pi/agent/sessions"
+# Overridable so this can be NEGATIVE-CONTROLLED against a planted fixture.
+# While it was hardcoded, `sett blind` could not test it at all — and the first
+# version of that test passed anyway, because it grepped for "read its own"
+# which appears in the CLEAN message "no run read its own spec".
+SESS="${SETT_SESSIONS:-$HOME/.pi/agent/sessions}"
 [ -d "$SESS" ] || { echo "no pi sessions at $SESS"; exit 0; }
 
 echo "== self-spec reads since $SINCE =="

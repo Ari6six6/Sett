@@ -155,7 +155,7 @@ flash-100-core   23/23     none      22/23     n/a       12
 smoke-3          3/3       none      3/3       n/a       0
 stix-graph-12    12/12     12/12     12/12     n/a       0
 
-verbs clean (17 verbs run; unknown verb dies)
+verbs clean (18 verbs run; unknown verb dies)
 rot   clean
 leak  clean (no run read its own spec today)
 ```
@@ -245,6 +245,7 @@ sett report <spec>           write REPORT.md
 
 # the instruments
 sett selftest [--fast]       every gate on every spec — is the instrument sound?
+sett blind                   break the world; do the instruments notice?
 sett gate <spec>             mutation-test the CHECKS (--wrong, --broken)
 sett prompts <spec>          the exact text the model receives, expanded
 sett check <spec> [--out D]  re-run every check, read-only, no model

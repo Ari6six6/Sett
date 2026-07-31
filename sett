@@ -738,6 +738,7 @@ case "${1:-}" in
   rot)     shift; exec "$SETT_ROOT/lib/rot.sh" "$@" ;;
   lint)    shift; exec "$SETT_ROOT/lib/lint.sh" "$@" ;;
   selftest) shift; exec "$SETT_ROOT/lib/selftest.sh" "$@" ;;
+  blind)   shift; exec "$SETT_ROOT/lib/blind.sh" "$@" ;;
   leak)    shift; exec "$SETT_ROOT/lib/leak.sh" "$@" ;;
   ab)      shift; exec "$SETT_ROOT/lib/ab.sh" "$@" ;;
   runs)    shift; exec "$SETT_ROOT/lib/runs.sh" "$@" ;;
