@@ -12,6 +12,46 @@ different world and must be re-run.
 
 Fetched 2026-07-28 · KEV `catalogVersion` 2026.07.27
 
+## Where they come from
+
+```sh
+corpus/fetch.sh [DEST]      # DEST defaults to the path the specs name
+```
+
+| file | source |
+|---|---|
+| `enterprise-attack-stix21.json` | `attack-stix-data` → `enterprise-attack/enterprise-attack-19.1.json` (MITRE, GitHub) |
+| `known_exploited_vulnerabilities.json` | `cisa.gov/sites/default/files/feeds/` |
+| `epss-hardlinks.json` | `api.first.org/data/v1/epss?cve=` — the 26 CVEs that hardlink KEV to ATT&CK |
+
+`fetch.sh` downloads each, refuses anything that is not parseable JSON, and
+compares the bytes against the pins above.
+
+**Only ATT&CK can be pinned.** MITRE publishes immutable numbered releases, so
+the script asks for `19.1` by name and gets the same 53,277,393 bytes every
+time — verified 2026-07-31, sha256 `bdf1ce86…`, byte-identical.
+
+The other two are living feeds and drifting is their normal state. Re-fetched
+2026-07-31, three days after the pin:
+
+```
+KEV     DRIFT   1567768 bytes   pinned e0326281…  →  got 15b44d7c…
+EPSS    DRIFT      2517 bytes   pinned 3aed727a…  →  got 95174f21…
+```
+
+KEV gained exactly one entry in three days: **1655 → 1656**.
+
+That single row is the whole argument for this file. Any check that had
+hardcoded `1655` as its expected value would now fail a model that answered
+`1656` — which is the *correct* answer about today's catalog. The check would
+not break; it would **invert**, exactly as `smoke-3` point 3 did.
+
+Audited 2026-07-31: no check in `specs/` hardcodes a corpus-derived constant.
+Every one recomputes its expected value from the file it grades against, so a
+refreshed corpus moves the answer and the check follows it. What a refresh
+*does* invalidate is comparison — a score computed against 1656 entries is not
+the same measurement as one in `RESULTS.md`, and `fetch.sh` says so out loud.
+
 ## Why these
 
 All three are machine-readable, exactly answerable, and free. That is the whole
